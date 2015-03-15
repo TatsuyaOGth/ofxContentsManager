@@ -1,0 +1,11 @@
+#pragma once
+
+#define OFX_CONTENTS_MANAGER_START_NAMESPACE namespace ofxContentsManager {
+#define OFX_CONTENTS_MANAGER_END_NAMESPACE }
+
+OFX_CONTENTS_MANAGER_START_NAMESPACE
+
+static const string MODULE_NAME = "ofxContentsManager";
+
+
+OFX_CONTENTS_MANAGER_END_NAMESPACE
