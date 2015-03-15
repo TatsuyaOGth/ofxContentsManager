@@ -1,50 +1,32 @@
 #pragma once
 
-#include "ofMain.h"
 #include "common.h"
+#include "BaseContent.h"
 
-OFX_CONTENTS_MANAGER_START_NAMESPACE
+OFX_CONTENTS_MANAGER_BEGIN_NAMESPACE
 
-class Content
-{
-public:
-    Content(){}
-    virtual ~Content(){}
-
-    virtual void setup(){}
-    virtual void update(){}
-    virtual void draw(){}
-    virtual void exit(){}
-    virtual void windowResized(int w, int h){}
-    virtual void keyPressed( int key ){}
-    virtual void keyReleased( int key ){}
-    virtual void mouseMoved( int x, int y ){}
-    virtual void mouseDragged( int x, int y, int button ){}
-    virtual void mousePressed( int x, int y, int button ){}
-    virtual void mouseReleased(int x, int y, int button ){}
-    virtual void dragEvent(ofDragInfo dragInfo){}
-    virtual void gotMessage(ofMessage msg){}
-    virtual void windowEntry ( int state ){}
-    
-    virtual void start(){}; ///< start/restart callback
-    virtual void stop(){};  ///< stop callback
-};
-
-//-------------------------------------------------------------------------
 
 class Controller
 {
 protected:
+    
     typedef shared_ptr<Content> contentPtr;
-    typedef vector<contentPtr>::iterator contents_it;
-    typedef vector<int>::iterator enid_it;
     
-    vector<contentPtr> mContents;
-    vector<int> mEnableNID;
+    typedef struct {
+        contentPtr obj;
+        stateMode state;
+        float mFadeValue;
+    } myContent;
     
+    vector<myContent> mContents;
+    typedef vector<myContent>::iterator contents_it;
+    
+    bool    bFade;          ///< fade modeflag
+    float   mFadeTime;      ///< fade time (second)
+    int     mCurrentRunID;  ///< content ID which is currently running
     
     /**
-     *  Check exist
+     *  Check id
      *
      *  @param nid Target content ID
      *  @return If exist then true else false
@@ -70,27 +52,14 @@ protected:
     {
         contentPtr p = contentPtr(o);
         p->setup();
-        mContents.push_back(p);
-        mEnableNID.push_back(mContents.size() - 1);
+        myContent e = { p, RUNNING, 1.0};
+        mContents.push_back(e);
         return o;
-    }
-    
-    void removeContentID(const int nid)
-    {
-        enid_it it = mEnableNID.begin();
-        while (it != mEnableNID.end())
-        {
-            if (*it == nid)
-            {
-                it = mEnableNID.erase(it);
-            }
-            else it++;
-        }
     }
     
 public:
     
-    Controller(){}
+    Controller():bFade(false), mFadeTime(2) {}
     virtual ~Controller(){};
     
     /*
@@ -100,93 +69,152 @@ public:
     void setup()
     {
         for (contents_it it = mContents.begin(); it != mContents.end(); it++)
-            (*it)->setup();
+        {
+            it->obj->setup();
+        }
     }
     
     void update()
     {
-        for (enid_it it = mEnableNID.begin(); it != mEnableNID.end(); it++)
-            mContents[*it]->update();
+        for (contents_it it = mContents.begin(); it != mContents.end(); it++)
+        {
+            if (it->state == RUNNING || it->state == FADE_IN)
+            {
+                it->obj->update();
+            }
+        }
     }
     
     void draw()
     {
-        for (enid_it it = mEnableNID.begin(); it != mEnableNID.end(); it++)
+        for (contents_it it = mContents.begin(); it != mContents.end(); it++)
         {
-            glPushAttrib(GL_ALL_ATTRIB_BITS);
-            ofPushMatrix();
-            ofPushStyle();
-            mContents[*it]->draw();
-            ofPopStyle();
-            ofPopMatrix();
-            glPopAttrib();
+            if (it->state == RUNNING || it->state == FADE_IN)
+            {
+                glPushAttrib(GL_ALL_ATTRIB_BITS);
+                ofPushMatrix();
+                ofPushStyle();
+                it->obj->draw();
+                ofPopStyle();
+                ofPopMatrix();
+                glPopAttrib();
+            }
         }
     }
     
     void exit()
     {
         for (contents_it it = mContents.begin(); it != mContents.end(); it++)
-            (*it)->exit();
+        {
+            it->obj->exit();
+        }
     }
     
     void windowResized(int w, int h)
     {
-        for (enid_it it = mEnableNID.begin(); it != mEnableNID.end(); it++)
-            mContents[*it]->windowResized(w, h);
+        for (contents_it it = mContents.begin(); it != mContents.end(); it++)
+        {
+            it->obj->windowResized(w, h);
+        }
     }
     
     void keyPressed( int key )
     {
-        for (enid_it it = mEnableNID.begin(); it != mEnableNID.end(); it++)
-            mContents[*it]->keyPressed(key);
+        for (contents_it it = mContents.begin(); it != mContents.end(); it++)
+        {
+            if (it->state == RUNNING || it->state == FADE_IN)
+            {
+                it->obj->keyPressed(key);
+            }
+        }
     }
     
     void keyReleased( int key )
     {
-        for (enid_it it = mEnableNID.begin(); it != mEnableNID.end(); it++)
-            mContents[*it]->keyReleased(key);
+        for (contents_it it = mContents.begin(); it != mContents.end(); it++)
+        {
+            if (it->state == RUNNING || it->state == FADE_IN)
+            {
+                it->obj->keyReleased(key);
+            }
+        }
     }
     
     void mouseMoved( int x, int y )
     {
-        for (enid_it it = mEnableNID.begin(); it != mEnableNID.end(); it++)
-            mContents[*it]->mouseMoved(x, y);
+        for (contents_it it = mContents.begin(); it != mContents.end(); it++)
+        {
+            if (it->state == RUNNING || it->state == FADE_IN)
+            {
+                it->obj->mouseMoved(x, y);
+            }
+        }
     }
     
     void mouseDragged( int x, int y, int button )
     {
-        for (enid_it it = mEnableNID.begin(); it != mEnableNID.end(); it++)
-            mContents[*it]->mouseDragged(x, y, button);
+        for (contents_it it = mContents.begin(); it != mContents.end(); it++)
+        {
+            if (it->state == RUNNING || it->state == FADE_IN)
+            {
+                it->obj->mouseDragged(x, y, button);
+            }
+        }
     }
     
     void mousePressed( int x, int y, int button )
     {
-        for (enid_it it = mEnableNID.begin(); it != mEnableNID.end(); it++)
-            mContents[*it]->mousePressed(x, y, button);
+        for (contents_it it = mContents.begin(); it != mContents.end(); it++)
+        {
+            if (it->state == RUNNING || it->state == FADE_IN)
+            {
+                it->obj->mousePressed(x, y, button);
+            }
+        }
     }
     
     void mouseReleased(int x, int y, int button)
     {
-        for (enid_it it = mEnableNID.begin(); it != mEnableNID.end(); it++)
-            mContents[*it]->mouseReleased(x, y, button);
+        for (contents_it it = mContents.begin(); it != mContents.end(); it++)
+        {
+            if (it->state == RUNNING || it->state == FADE_IN)
+            {
+                it->obj->mouseReleased(x, y, button);
+            }
+        }
     }
     
     void dragEvent(ofDragInfo dragInfo)
     {
-        for (enid_it it = mEnableNID.begin(); it != mEnableNID.end(); it++)
-            mContents[*it]->dragEvent(dragInfo);
+        for (contents_it it = mContents.begin(); it != mContents.end(); it++)
+        {
+            if (it->state == RUNNING || it->state == FADE_IN)
+            {
+                it->obj->dragEvent(dragInfo);
+            }
+        }
     }
     
     void gotMessage(ofMessage msg)
     {
-        for (enid_it it = mEnableNID.begin(); it != mEnableNID.end(); it++)
-            mContents[*it]->gotMessage(msg);
+        for (contents_it it = mContents.begin(); it != mContents.end(); it++)
+        {
+            if (it->state == RUNNING || it->state == FADE_IN)
+            {
+                it->obj->gotMessage(msg);
+            }
+        }
     }
     
     void windowEntry ( int state )
     {
-        for (enid_it it = mEnableNID.begin(); it != mEnableNID.end(); it++)
-            mContents[*it]->windowEntry(state);
+        for (contents_it it = mContents.begin(); it != mContents.end(); it++)
+        {
+            if (it->state == RUNNING || it->state == FADE_IN)
+            {
+                it->obj->windowEntry(state);
+            }
+        }
     }
     
     
@@ -276,47 +304,143 @@ public:
 public:
     
     /*
-        getter and setter
+        setter and getter
      */
     
-//    contentPtr addContent(contentPtr newContentPtr)
-//    {
-//        newContentPtr->setup();
-//        mContents.push_back(newContentPtr);
-//        mEnableNID.push_back(mContents.size() - 1);
-//        return newContentPtr;
-//    }
-//    
-//    Content * addContent(Content * newContentPtr)
-//    {
-//        contentPtr p = contentPtr(newContentPtr);
-//        addContent(p);
-//        return newContentPtr;
-//    }
+    void stopAll()
+    {
+        for (auto& e : mContents)
+        {
+            e.state = PAUSE;
+            e.obj->stop();
+        }
+    }
+    
+    void runAll()
+    {
+        for (auto& e : mContents)
+        {
+            e.state = RUNNING;
+            e.obj->start();
+        }
+    }
+    
+    bool setRunningOnly(const int nid)
+    {
+        if (!isValid(nid)) return false;
+        for (int i = 0; i < mContents.size(); ++i)
+        {
+            if (i == nid)
+            {
+                mContents[i].state = RUNNING;
+                mContents[i].obj->start();
+            }
+            else {
+                mContents[i].state = PAUSE;
+                mContents[i].obj->stop();
+            }
+        }
+        return true;
+    }
+    
+    bool setRunning(int * nids, const int size = 0)
+    {
+        if (nids == NULL) return false;
+        
+        int argc;
+        if (size == 0)
+        {
+            argc = sizeof(nids) / sizeof(nids[0]);
+        }
+        else argc = size;
+        
+        for (int i = 0; i < mContents.size(); ++i)
+        {
+            for (int j = 0; j < argc; ++j)
+            {
+                if (i == nids[j])
+                {
+                    mContents[i].state = RUNNING;
+                    mContents[i].obj->start();
+                }
+                else {
+                    mContents[i].state = PAUSE;
+                    mContents[i].obj->stop();
+                }
+            }
+        }
+        return true;
+    }
+    
+    bool setRunning(const int argc, ...)
+    {
+        if (argc < 1) return false;
+        
+        int targetNID[argc];
+        va_list args;
+        va_start(args , argc);
+        for (int i = 0 ; i < argc ; ++i)
+        {
+            targetNID[i] = va_arg(args , int);
+        }
+        va_end(args);
+        
+        return setRunning(targetNID, argc);
+    }
+    
+    bool setRunning(vector<int>& nids)
+    {
+        if (nids.empty()) return false;
+        return setRunning(nids.data(), nids.size());
+    }
+    
+    int changeContent(const int nid)
+    {
+        int targetNID = nid;
+        
+        if (nid < 0)
+            targetNID = 0;
+        else if (nid >= mContents.size())
+            targetNID = mContents.size() - 1;
+        
+        setRunningOnly(targetNID);
+        mCurrentRunID = targetNID;
+        return targetNID;
+    }
+    
+    int changeNextContent()
+    {
+        mCurrentRunID = changeContent(mCurrentRunID + 1);
+        return mCurrentRunID;
+    }
+    
+    int changePreviousContent()
+    {
+        mCurrentRunID = changeContent(mCurrentRunID - 1);
+        return mCurrentRunID;
+    }
+    
+    
     
     int getContentsSize()
     {
         return mContents.size();
     }
     
-    bool removeContent(const int nid)
+    vector<stateMode> getStateList()
     {
-        if (!isValid(nid)) return false;
-        contents_it it = mContents.begin() + nid;
-        (*it)->exit();
-        mContents.erase(it);
-        removeContentID(nid);
-        return true;
+        vector<stateMode> mode;
+        for (auto &e : mContents)
+        {
+            mode.push_back(e.state);
+        }
+        return mode;
     }
-
-    void clear()
-    {
-        mContents.clear();
-    }
-
+    
+    
     
     /*
-        content adder
+        content add and remove
         reference: https://github.com/satoruhiga/ofxAnimationPrimitives/blob/master/src/ofxAnimationPrimitives/InstanceManager.h
      */
     
@@ -426,6 +550,26 @@ public:
     T* addContent(const A0& a0, const A1& a1, const A2& a2, const A3& a3, const A4& a4, const A5& a5, const A6& a6, const A7& a7, const A8& a8, const A9& a9, const A10& a10, const A11& a11, const A12& a12, const A13& a13, const A14& a14, const A15& a15, const A16& a16)
     {
         return setupContent<T>(new T(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16));
+    }
+    
+    
+    
+    bool removeContent(const int nid)
+    {
+        if (!isValid(nid)) return false;
+        contents_it it = mContents.begin() + nid;
+        it->obj->exit();
+        mContents.erase(it);
+        return true;
+    }
+    
+    void clear()
+    {
+        for (contents_it it = mContents.begin(); it != mContents.end(); it++)
+        {
+            it->obj->exit();
+        }
+        mContents.clear();
     }
 };
 
