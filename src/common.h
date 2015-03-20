@@ -8,8 +8,8 @@
 OFX_CONTENTS_MANAGER_BEGIN_NAMESPACE
 
 static const string MODULE_NAME = "ofxContentsManager";
-enum stateMode { RUNNING=0, PAUSE, FADE_IN, FADE_OUT };
 
+enum state {PLAY, PAUSE};
 
 namespace RTTI
 {
@@ -21,14 +21,5 @@ namespace RTTI
         return &m;
     }
 };
-
-
-
-class BaseContent
-{
-    
-};
-
-
 
 OFX_CONTENTS_MANAGER_END_NAMESPACE

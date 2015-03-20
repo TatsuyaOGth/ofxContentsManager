@@ -28,6 +28,24 @@ public:
     
     virtual void start(){}; ///< start/restart callback
     virtual void stop(){};  ///< stop callback
+    
+
+    /**
+     *  This object name
+     *  @return object name string
+     */
+    string getName()
+    {
+        const type_info& id = typeid(*this);
+        int stat;
+        char *name = abi::__cxa_demangle(id.name(), 0, 0, &stat);
+        if (name != NULL && stat == 0) {
+            string myName(name);
+            return myName;
+        }
+        ofLogWarning(MODULE_NAME) << "faild get object name";
+        return "";
+    }
 };
 
 //---------------------------------------------------------------------------
@@ -35,12 +53,13 @@ public:
 class Controller
 {
 protected:
-    typedef struct {
-        shared_ptr<Content> obj;
-        stateMode state;
-        float mFadeValue;
-        RTTI::TypeID typeId;
+    typedef struct
+    {
+        shared_ptr<Content>  obj;
+        bool           isPlay;
+        RTTI::TypeID   typeId;
     } myContent;
+    
     vector<myContent> mContents;
     
     typedef shared_ptr<Content> contentPtr;
@@ -48,9 +67,9 @@ protected:
     
     int     mCurrentRunID;  ///< content ID which is currently running
     
+protected:
     /**
      *  Check id
-     *
      *  @param nid Target content ID
      *  @return If exist then true else false
      */
@@ -66,7 +85,6 @@ protected:
     
     /**
      *  Setting to an additional content
-     *
      *  @param o New content pointer
      *  @return Return back param
      */
@@ -75,13 +93,12 @@ protected:
     {
         contentPtr p = contentPtr(o);
         p->setup();
-        myContent e = { p, RUNNING, 1.0, RTTI::getTypeID<T>() };
+        myContent e = { p, true, RTTI::getTypeID<T>() };
         mContents.push_back(e);
         return o;
     }
     
 public:
-    
     Controller(){}
     virtual ~Controller(){};
     
@@ -101,7 +118,7 @@ public:
     {
         for (const auto& e : mContents)
         {
-            if (e.state == RUNNING || e.state == FADE_IN)
+            if (e.isPlay)
             {
                 e.obj->update();
             }
@@ -112,7 +129,7 @@ public:
     {
         for (const auto& e : mContents)
         {
-            if (e.state == RUNNING || e.state == FADE_IN)
+            if (e.isPlay)
             {
                 glPushAttrib(GL_ALL_ATTRIB_BITS);
                 ofPushMatrix();
@@ -145,7 +162,7 @@ public:
     {
         for (const auto& e : mContents)
         {
-            if (e.state == RUNNING || e.state == FADE_IN)
+            if (e.isPlay)
             {
                 e.obj->keyPressed(key);
             }
@@ -156,7 +173,7 @@ public:
     {
         for (const auto& e : mContents)
         {
-            if (e.state == RUNNING || e.state == FADE_IN)
+            if (e.isPlay)
             {
                 e.obj->keyReleased(key);
             }
@@ -167,7 +184,7 @@ public:
     {
         for (const auto& e : mContents)
         {
-            if (e.state == RUNNING || e.state == FADE_IN)
+            if (e.isPlay)
             {
                 e.obj->mouseMoved(x, y);
             }
@@ -178,7 +195,7 @@ public:
     {
         for (const auto& e : mContents)
         {
-            if (e.state == RUNNING || e.state == FADE_IN)
+            if (e.isPlay)
             {
                 e.obj->mouseDragged(x, y, button);
             }
@@ -189,7 +206,7 @@ public:
     {
         for (const auto& e : mContents)
         {
-            if (e.state == RUNNING || e.state == FADE_IN)
+            if (e.isPlay)
             {
                 e.obj->mousePressed(x, y, button);
             }
@@ -200,7 +217,7 @@ public:
     {
         for (const auto& e : mContents)
         {
-            if (e.state == RUNNING || e.state == FADE_IN)
+            if (e.isPlay)
             {
                 e.obj->mouseReleased(x, y, button);
             }
@@ -211,7 +228,7 @@ public:
     {
         for (const auto& e : mContents)
         {
-            if (e.state == RUNNING || e.state == FADE_IN)
+            if (e.isPlay)
             {
                 e.obj->dragEvent(dragInfo);
             }
@@ -222,7 +239,7 @@ public:
     {
         for (const auto& e : mContents)
         {
-            if (e.state == RUNNING || e.state == FADE_IN)
+            if (e.isPlay)
             {
                 e.obj->gotMessage(msg);
             }
@@ -233,7 +250,7 @@ public:
     {
         for (const auto& e : mContents)
         {
-            if (e.state == RUNNING || e.state == FADE_IN)
+            if (e.isPlay)
             {
                 e.obj->windowEntry(state);
             }
@@ -257,69 +274,69 @@ public:
     void onMouseReleased(ofMouseEventArgs &e)   { mouseReleased(e.x, e.y, e.button); }
     void onWindowResized(ofResizeEventArgs &e)  { windowResized(e.width, e.height); }
     void onWindowEntry(ofEntryEventArgs &e)     { windowEntry(e.state); }
-    void onGotMessage(ofMessage &e)             { gotMessage(e); } // hmm...
-    void onDragEvent(ofDragInfo &e)             { dragEvent(e); } // hmm...
+    void onGotMessage(ofMessage &e)             { gotMessage(e); }
+    void onDragEvent(ofDragInfo &e)             { dragEvent(e); }
     
-    void enableAppEventListener()
+    void enableAppEventListener(int prio = OF_EVENT_ORDER_AFTER_APP)
     {
-        ofAddListener(ofEvents().update, this, &Controller::onUpdate);
-        ofAddListener(ofEvents().draw, this, &Controller::onDraw);
-        ofAddListener(ofEvents().exit, this, &Controller::onExit);
-        ofAddListener(ofEvents().windowResized, this, &Controller::onWindowResized);
-        ofAddListener(ofEvents().windowEntered, this, &Controller::onWindowEntry);
-        ofAddListener(ofEvents().fileDragEvent, this, &Controller::onDragEvent);
+        ofAddListener(ofEvents().update, this, &Controller::onUpdate, prio);
+        ofAddListener(ofEvents().draw, this, &Controller::onDraw, prio);
+        ofAddListener(ofEvents().exit, this, &Controller::onExit, prio);
+        ofAddListener(ofEvents().windowResized, this, &Controller::onWindowResized, prio);
+        ofAddListener(ofEvents().windowEntered, this, &Controller::onWindowEntry, prio);
+        ofAddListener(ofEvents().fileDragEvent, this, &Controller::onDragEvent, prio);
     }
     
-    void enableKeyEventLitener()
+    void enableKeyEventLitener(int prio = OF_EVENT_ORDER_AFTER_APP)
     {
-        ofAddListener(ofEvents().keyPressed, this, &Controller::onKeyPressed);
-        ofAddListener(ofEvents().keyReleased, this, &Controller::onKeyReleased);
+        ofAddListener(ofEvents().keyPressed, this, &Controller::onKeyPressed, prio);
+        ofAddListener(ofEvents().keyReleased, this, &Controller::onKeyReleased, prio);
     }
     
-    void enableMouseEventListener()
+    void enableMouseEventListener(int prio = OF_EVENT_ORDER_AFTER_APP)
     {
-        ofAddListener(ofEvents().mouseMoved, this, &Controller::onMouseMoved);
-        ofAddListener(ofEvents().mouseDragged, this, &Controller::onMouseDragged);
-        ofAddListener(ofEvents().mousePressed, this, &Controller::onMousePressed);
-        ofAddListener(ofEvents().mouseReleased, this, &Controller::onMouseReleased);
+        ofAddListener(ofEvents().mouseMoved, this, &Controller::onMouseMoved, prio);
+        ofAddListener(ofEvents().mouseDragged, this, &Controller::onMouseDragged, prio);
+        ofAddListener(ofEvents().mousePressed, this, &Controller::onMousePressed, prio);
+        ofAddListener(ofEvents().mouseReleased, this, &Controller::onMouseReleased, prio);
     }
     
-    void disableAppEventListener()
+    void disableAppEventListener(int prio = OF_EVENT_ORDER_AFTER_APP)
     {
-        ofRemoveListener(ofEvents().update, this, &Controller::onUpdate);
-        ofRemoveListener(ofEvents().draw, this, &Controller::onDraw);
-        ofRemoveListener(ofEvents().exit, this, &Controller::onExit);
-        ofRemoveListener(ofEvents().windowResized, this, &Controller::onWindowResized);
-        ofRemoveListener(ofEvents().windowEntered, this, &Controller::onWindowEntry);
-        ofRemoveListener(ofEvents().fileDragEvent, this, &Controller::onDragEvent);
+        ofRemoveListener(ofEvents().update, this, &Controller::onUpdate, prio);
+        ofRemoveListener(ofEvents().draw, this, &Controller::onDraw, prio);
+        ofRemoveListener(ofEvents().exit, this, &Controller::onExit, prio);
+        ofRemoveListener(ofEvents().windowResized, this, &Controller::onWindowResized, prio);
+        ofRemoveListener(ofEvents().windowEntered, this, &Controller::onWindowEntry, prio);
+        ofRemoveListener(ofEvents().fileDragEvent, this, &Controller::onDragEvent, prio);
     }
     
-    void disableKeyEventListener()
+    void disableKeyEventListener(int prio = OF_EVENT_ORDER_AFTER_APP)
     {
-        ofRemoveListener(ofEvents().keyPressed, this, &Controller::onKeyPressed);
-        ofRemoveListener(ofEvents().keyReleased, this, &Controller::onKeyReleased);
+        ofRemoveListener(ofEvents().keyPressed, this, &Controller::onKeyPressed, prio);
+        ofRemoveListener(ofEvents().keyReleased, this, &Controller::onKeyReleased, prio);
     }
     
-    void disableMouseEventListener()
+    void disableMouseEventListener(int prio = OF_EVENT_ORDER_AFTER_APP)
     {
-        ofRemoveListener(ofEvents().mouseMoved, this, &Controller::onMouseMoved);
-        ofRemoveListener(ofEvents().mouseDragged, this, &Controller::onMouseDragged);
-        ofRemoveListener(ofEvents().mousePressed, this, &Controller::onMousePressed);
-        ofRemoveListener(ofEvents().mouseReleased, this, &Controller::onMouseReleased);
+        ofRemoveListener(ofEvents().mouseMoved, this, &Controller::onMouseMoved, prio);
+        ofRemoveListener(ofEvents().mouseDragged, this, &Controller::onMouseDragged, prio);
+        ofRemoveListener(ofEvents().mousePressed, this, &Controller::onMousePressed, prio);
+        ofRemoveListener(ofEvents().mouseReleased, this, &Controller::onMouseReleased, prio);
     }
     
-    void enableAllEventListener()
+    void enableAllEventListener(int prio = OF_EVENT_ORDER_AFTER_APP)
     {
-        enableAppEventListener();
-        enableKeyEventLitener();
-        enableMouseEventListener();
+        enableAppEventListener(prio);
+        enableKeyEventLitener(prio);
+        enableMouseEventListener(prio);
     }
     
-    void disableAllEventListener()
+    void disableAllEventListener(int prio = OF_EVENT_ORDER_AFTER_APP)
     {
-        disableAppEventListener();
-        disableKeyEventListener();
-        disableMouseEventListener();
+        disableAppEventListener(prio);
+        disableKeyEventListener(prio);
+        disableMouseEventListener(prio);
     }
     
     
@@ -334,7 +351,7 @@ public:
     {
         for (auto& e : mContents)
         {
-            e.state = PAUSE;
+            e.isPlay = false;
             e.obj->stop();
         }
     }
@@ -343,7 +360,7 @@ public:
     {
         for (auto& e : mContents)
         {
-            e.state = RUNNING;
+            e.isPlay = true;
             e.obj->start();
         }
     }
@@ -355,11 +372,11 @@ public:
         {
             if (i == nid)
             {
-                mContents[i].state = RUNNING;
+                mContents[i].isPlay = true;
                 mContents[i].obj->start();
             }
             else {
-                mContents[i].state = PAUSE;
+                mContents[i].isPlay = false;
                 mContents[i].obj->stop();
             }
         }
@@ -383,11 +400,11 @@ public:
             {
                 if (i == nids[j])
                 {
-                    mContents[i].state = RUNNING;
+                    mContents[i].isPlay = true;
                     mContents[i].obj->start();
                 }
                 else {
-                    mContents[i].state = PAUSE;
+                    mContents[i].isPlay = false;
                     mContents[i].obj->stop();
                 }
             }
@@ -448,16 +465,6 @@ public:
     int getContentsSize()
     {
         return mContents.size();
-    }
-    
-    vector<stateMode> getStateList()
-    {
-        vector<stateMode> mode;
-        for (auto &e : mContents)
-        {
-            mode.push_back(e.state);
-        }
-        return mode;
     }
     
     
