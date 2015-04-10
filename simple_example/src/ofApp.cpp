@@ -3,6 +3,10 @@
 //--------------------------------------------------------------
 void ofApp::setup(){
 
+    mContents = new ofxContentsManager::Manager(true);
+    mContents->addContent<ContentA>();
+    
+    mContents->changeContent(0);
 }
 
 //--------------------------------------------------------------

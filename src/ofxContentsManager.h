@@ -4,27 +4,21 @@
 
 OFX_CONTENTS_MANAGER_BEGIN_NAMESPACE
 
-
 class Content
 {
+    float bufferWidth, bufferHeight;
+    
+protected:
+    float getWidth()  const { return bufferWidth;  }
+    float getHeight() const { return bufferHeight; }
+    
 public:
-    Content(){}
+    Content():bufferWidth(ofGetWidth()), bufferHeight(ofGetHeight()){}
     virtual ~Content(){}
     
-    virtual void setup(){}
     virtual void update(){}
     virtual void draw(){}
     virtual void exit(){}
-    virtual void windowResized(int w, int h){}
-    virtual void keyPressed( int key ){}
-    virtual void keyReleased( int key ){}
-    virtual void mouseMoved( int x, int y ){}
-    virtual void mouseDragged( int x, int y, int button ){}
-    virtual void mousePressed( int x, int y, int button ){}
-    virtual void mouseReleased(int x, int y, int button ){}
-    virtual void dragEvent(ofDragInfo dragInfo){}
-    virtual void gotMessage(ofMessage msg){}
-    virtual void windowEntry ( int state ){}
     
     virtual void start(){}; ///< start/restart callback
     virtual void stop(){};  ///< stop callback
@@ -50,14 +44,14 @@ public:
 
 //---------------------------------------------------------------------------
 
-class Controller
+class Manager
 {
 protected:
     typedef struct
     {
-        shared_ptr<Content>  obj;
-        bool           isPlay;
-        RTTI::TypeID   typeId;
+        shared_ptr<Content> obj;
+        float               opacity;
+        RTTI::TypeID        typeId;
     } myContent;
     
     vector<myContent> mContents;
@@ -66,6 +60,9 @@ protected:
     typedef vector<myContent>::iterator contents_it;
     
     int     mCurrentRunID;  ///< content ID which is currently running
+    float   bufferWidth;
+    float   bufferHeight;
+    ofFbo   mFbo;
     
 protected:
     /**
@@ -83,6 +80,11 @@ protected:
         return true;
     }
     
+    bool isPlay(const myContent& p)
+    {
+        return p.opacity != 0.0;
+    }
+    
     /**
      *  Setting to an additional content
      *  @param o New content pointer
@@ -92,56 +94,95 @@ protected:
     T* setupContent(T* o)
     {
         contentPtr p = contentPtr(o);
-        p->setup();
-        myContent e = { p, true, RTTI::getTypeID<T>() };
+        myContent e = { p, 0.0, RTTI::getTypeID<T>() };
+#ifdef TARGET_OPENGLES
+        mFbo.allocate(bufferWidth, bufferHeight, GL_RGBA );
+#else
+        mFbo.allocate(bufferWidth, bufferHeight, GL_RGBA32F_ARB);
+#endif
         mContents.push_back(e);
         return o;
     }
     
-public:
-    Controller(){}
-    virtual ~Controller(){};
-    
-    /*
-     ofApp basic methods
+    /**
+     *  Off-screen rendering.
      */
-    
-    void setup()
+    void rendering(contentPtr p)
     {
-        for (const auto& e : mContents)
-        {
-            e.obj->setup();
-        }
+        mFbo.begin();
+        glPushAttrib(GL_ALL_ATTRIB_BITS);
+        ofPushMatrix();
+        ofPushStyle();
+        p->draw();
+        ofPopStyle();
+        ofPopMatrix();
+        glPopAttrib();
+        mFbo.end();
+    }
+
+    
+public:
+    
+    /**
+     *  Constractor.
+     *  @param  width               Frame buffer width (default: ofGetWidth())
+     *  @param  height              Frame buffer height (default: ofGetHeight())
+     *  @param  doRegisterEvents    Register app events or (default: false)
+     */
+    Manager(const float width = ofGetWidth(),
+            const float height = ofGetHeight(),
+            const bool doRegistarEvents = false)
+    {
+        setup(width, height, doRegistarEvents);
+    }
+    virtual ~Manager(){};
+    
+    /**
+     *  Setup Manager
+     *  @param width            Frame buffer width
+     *  @param height           Frame buffer height
+     *  @param doRegistarEvents Register app events or (default: false)
+     */
+    void setup(const float width, const float height,
+               const bool doRegistarEvents = false)
+    {
+        bufferWidth = width;
+        bufferHeight = height;
+        if (doRegistarEvents) registerAppEvents();
     }
     
+    /**
+     *  Call content's "update".
+     */
     void update()
     {
         for (const auto& e : mContents)
         {
-            if (e.isPlay)
+            if (isPlay(e))
             {
                 e.obj->update();
             }
         }
     }
     
+    /**
+     *  Call content's "draw", and off-screen rendering.
+     */
     void draw()
     {
         for (const auto& e : mContents)
         {
-            if (e.isPlay)
+            if (isPlay(e))
             {
-                glPushAttrib(GL_ALL_ATTRIB_BITS);
-                ofPushMatrix();
-                ofPushStyle();
-                e.obj->draw();
-                ofPopStyle();
-                ofPopMatrix();
-                glPopAttrib();
+                rendering(e.obj);
             }
         }
+
     }
     
+    /**
+     *  Exit contents.
+     */
     void exit()
     {
         for (const auto& e : mContents)
@@ -150,221 +191,37 @@ public:
         }
     }
     
-    void windowResized(int w, int h)
-    {
-        for (const auto& e : mContents)
-        {
-            e.obj->windowResized(w, h);
-        }
-    }
-    
-    void keyPressed( int key )
-    {
-        for (const auto& e : mContents)
-        {
-            if (e.isPlay)
-            {
-                e.obj->keyPressed(key);
-            }
-        }
-    }
-    
-    void keyReleased( int key )
-    {
-        for (const auto& e : mContents)
-        {
-            if (e.isPlay)
-            {
-                e.obj->keyReleased(key);
-            }
-        }
-    }
-    
-    void mouseMoved( int x, int y )
-    {
-        for (const auto& e : mContents)
-        {
-            if (e.isPlay)
-            {
-                e.obj->mouseMoved(x, y);
-            }
-        }
-    }
-    
-    void mouseDragged( int x, int y, int button )
-    {
-        for (const auto& e : mContents)
-        {
-            if (e.isPlay)
-            {
-                e.obj->mouseDragged(x, y, button);
-            }
-        }
-    }
-    
-    void mousePressed( int x, int y, int button )
-    {
-        for (const auto& e : mContents)
-        {
-            if (e.isPlay)
-            {
-                e.obj->mousePressed(x, y, button);
-            }
-        }
-    }
-    
-    void mouseReleased(int x, int y, int button)
-    {
-        for (const auto& e : mContents)
-        {
-            if (e.isPlay)
-            {
-                e.obj->mouseReleased(x, y, button);
-            }
-        }
-    }
-    
-    void dragEvent(ofDragInfo dragInfo)
-    {
-        for (const auto& e : mContents)
-        {
-            if (e.isPlay)
-            {
-                e.obj->dragEvent(dragInfo);
-            }
-        }
-    }
-    
-    void gotMessage(ofMessage msg)
-    {
-        for (const auto& e : mContents)
-        {
-            if (e.isPlay)
-            {
-                e.obj->gotMessage(msg);
-            }
-        }
-    }
-    
-    void windowEntry ( int state )
-    {
-        for (const auto& e : mContents)
-        {
-            if (e.isPlay)
-            {
-                e.obj->windowEntry(state);
-            }
-        }
-    }
-    
-    
     
     /*
      ofApp event listener
      */
     
-    void onUpdate(ofEventArgs &e)               { update(); }
-    void onDraw(ofEventArgs &e)                 { draw(); }
-    void onExit(ofEventArgs &e)                 { exit(); }
-    void onKeyPressed(ofKeyEventArgs &e)        { keyPressed(e.key); }
-    void onKeyReleased(ofKeyEventArgs &e)       { keyReleased(e.key); }
-    void onMouseMoved(ofMouseEventArgs &e)      { mouseMoved(e.x, e.y); }
-    void onMouseDragged(ofMouseEventArgs &e)    { mouseDragged(e.x, e.y, e.button); }
-    void onMousePressed(ofMouseEventArgs &e)    { mousePressed(e.x, e.y, e.button); }
-    void onMouseReleased(ofMouseEventArgs &e)   { mouseReleased(e.x, e.y, e.button); }
-    void onWindowResized(ofResizeEventArgs &e)  { windowResized(e.width, e.height); }
-    void onWindowEntry(ofEntryEventArgs &e)     { windowEntry(e.state); }
-    void onGotMessage(ofMessage &e)             { gotMessage(e); }
-    void onDragEvent(ofDragInfo &e)             { dragEvent(e); }
+    void onUpdate(ofEventArgs &e)   { update(); }
+    void onDraw(ofEventArgs &e)     { draw(); }
+    void onExit(ofEventArgs &e)     { exit(); }
     
-    void enableAppEventListener(int prio = OF_EVENT_ORDER_AFTER_APP)
+    void registerAppEvents(int prio = OF_EVENT_ORDER_AFTER_APP)
     {
-        ofAddListener(ofEvents().update, this, &Controller::onUpdate, prio);
-        ofAddListener(ofEvents().draw, this, &Controller::onDraw, prio);
-        ofAddListener(ofEvents().exit, this, &Controller::onExit, prio);
-        ofAddListener(ofEvents().windowResized, this, &Controller::onWindowResized, prio);
-        ofAddListener(ofEvents().windowEntered, this, &Controller::onWindowEntry, prio);
-        ofAddListener(ofEvents().fileDragEvent, this, &Controller::onDragEvent, prio);
+        ofAddListener(ofEvents().update, this, &Manager::onUpdate, prio);
+        ofAddListener(ofEvents().draw, this, &Manager::onDraw, prio);
+        ofAddListener(ofEvents().exit, this, &Manager::onExit, prio);
     }
     
-    void enableKeyEventLitener(int prio = OF_EVENT_ORDER_AFTER_APP)
+    void unregisterAppEvents(int prio = OF_EVENT_ORDER_AFTER_APP)
     {
-        ofAddListener(ofEvents().keyPressed, this, &Controller::onKeyPressed, prio);
-        ofAddListener(ofEvents().keyReleased, this, &Controller::onKeyReleased, prio);
+        ofRemoveListener(ofEvents().update, this, &Manager::onUpdate, prio);
+        ofRemoveListener(ofEvents().draw, this, &Manager::onDraw, prio);
+        ofRemoveListener(ofEvents().exit, this, &Manager::onExit, prio);
     }
-    
-    void enableMouseEventListener(int prio = OF_EVENT_ORDER_AFTER_APP)
-    {
-        ofAddListener(ofEvents().mouseMoved, this, &Controller::onMouseMoved, prio);
-        ofAddListener(ofEvents().mouseDragged, this, &Controller::onMouseDragged, prio);
-        ofAddListener(ofEvents().mousePressed, this, &Controller::onMousePressed, prio);
-        ofAddListener(ofEvents().mouseReleased, this, &Controller::onMouseReleased, prio);
-    }
-    
-    void disableAppEventListener(int prio = OF_EVENT_ORDER_AFTER_APP)
-    {
-        ofRemoveListener(ofEvents().update, this, &Controller::onUpdate, prio);
-        ofRemoveListener(ofEvents().draw, this, &Controller::onDraw, prio);
-        ofRemoveListener(ofEvents().exit, this, &Controller::onExit, prio);
-        ofRemoveListener(ofEvents().windowResized, this, &Controller::onWindowResized, prio);
-        ofRemoveListener(ofEvents().windowEntered, this, &Controller::onWindowEntry, prio);
-        ofRemoveListener(ofEvents().fileDragEvent, this, &Controller::onDragEvent, prio);
-    }
-    
-    void disableKeyEventListener(int prio = OF_EVENT_ORDER_AFTER_APP)
-    {
-        ofRemoveListener(ofEvents().keyPressed, this, &Controller::onKeyPressed, prio);
-        ofRemoveListener(ofEvents().keyReleased, this, &Controller::onKeyReleased, prio);
-    }
-    
-    void disableMouseEventListener(int prio = OF_EVENT_ORDER_AFTER_APP)
-    {
-        ofRemoveListener(ofEvents().mouseMoved, this, &Controller::onMouseMoved, prio);
-        ofRemoveListener(ofEvents().mouseDragged, this, &Controller::onMouseDragged, prio);
-        ofRemoveListener(ofEvents().mousePressed, this, &Controller::onMousePressed, prio);
-        ofRemoveListener(ofEvents().mouseReleased, this, &Controller::onMouseReleased, prio);
-    }
-    
-    void enableAllEventListener(int prio = OF_EVENT_ORDER_AFTER_APP)
-    {
-        enableAppEventListener(prio);
-        enableKeyEventLitener(prio);
-        enableMouseEventListener(prio);
-    }
-    
-    void disableAllEventListener(int prio = OF_EVENT_ORDER_AFTER_APP)
-    {
-        disableAppEventListener(prio);
-        disableKeyEventListener(prio);
-        disableMouseEventListener(prio);
-    }
-    
     
     
 public:
     
-    /*
-     setter and getter
+    /**
+     *  Run a content selected.
+     *  @param nid Number of target content.
+     *  @return If error, return FALSE.
      */
-    
-    void stopAll()
-    {
-        for (auto& e : mContents)
-        {
-            e.isPlay = false;
-            e.obj->stop();
-        }
-    }
-    
-    void runAll()
-    {
-        for (auto& e : mContents)
-        {
-            e.isPlay = true;
-            e.obj->start();
-        }
-    }
-    
     bool setRunningOnly(const int nid)
     {
         if (!isValid(nid)) return false;
@@ -372,11 +229,11 @@ public:
         {
             if (i == nid)
             {
-                mContents[i].isPlay = true;
+                mContents[i].opacity = 1.0;
                 mContents[i].obj->start();
             }
             else {
-                mContents[i].isPlay = false;
+                mContents[i].opacity = 0.0;
                 mContents[i].obj->stop();
             }
         }
@@ -400,11 +257,11 @@ public:
             {
                 if (i == nids[j])
                 {
-                    mContents[i].isPlay = true;
+                    mContents[i].opacity = 1.0;
                     mContents[i].obj->start();
                 }
                 else {
-                    mContents[i].isPlay = false;
+                    mContents[i].opacity = 0.0;
                     mContents[i].obj->stop();
                 }
             }
@@ -460,13 +317,20 @@ public:
         return mCurrentRunID;
     }
     
+    void setFrameBufferSize(const float width, const float height)
+    {
+#ifdef TARGET_OPENGLES
+        mFbo.allocate(bufferWidth, bufferHeight, GL_RGBA );
+#else
+        mFbo.allocate(bufferWidth, bufferHeight, GL_RGBA32F_ARB);
+#endif
+    }
     
     
     int getContentsSize()
     {
         return mContents.size();
     }
-    
     
     
     /*
