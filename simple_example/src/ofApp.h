@@ -2,7 +2,7 @@
 
 #include "ofMain.h"
 #include "ofxContentsManager.h"
-#include "ContentA.h"
+#include "ofxGui.h"
 
 class ofApp : public ofBaseApp{
     
@@ -23,4 +23,8 @@ public:
     
     ofxContentsManager::Manager* mContents;
     
+    ofxPanel gui;
+    ofParameter<float> faderA;
+    ofParameter<float> faderB;
+    ofParameter<float> faderC;
 };

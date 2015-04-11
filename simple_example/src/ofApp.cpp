@@ -1,22 +1,38 @@
 #include "ofApp.h"
+#include "ContentA.h"
+#include "ContentB.h"
+#include "ContentC.h"
 
 //--------------------------------------------------------------
 void ofApp::setup(){
 
-    mContents = new ofxContentsManager::Manager(true);
-    mContents->addContent<ContentA>();
+    mContents = new ofxContentsManager::Manager(ofGetWidth(), ofGetHeight());
+    mContents->addContent<ContentA>(200);
+    mContents->addContent<ContentB>(300);
+    mContents->addContent<ContentC>(400);
     
-    mContents->changeContent(0);
+    gui.setup();
+    gui.setName("FADERS");
+    gui.add(faderA.set("CONTENT_A", 0, 0, 1));
+    gui.add(faderB.set("CONTENT_B", 0, 0, 1));
+    gui.add(faderC.set("CONTENT_C", 0, 0, 1));
+    
+    ofBackground(30);
+    ofEnableAlphaBlending();
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
-
+    mContents->setOpacity(0, faderA);
+    mContents->setOpacity(1, faderB);
+    mContents->setOpacity(2, faderC);
+    mContents->update();
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-
+    mContents->draw();
+    gui.draw();
 }
 
 //--------------------------------------------------------------

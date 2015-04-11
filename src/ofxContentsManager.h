@@ -80,11 +80,6 @@ protected:
         return true;
     }
     
-    bool isPlay(const myContent& p)
-    {
-        return p.opacity != 0.0;
-    }
-    
     /**
      *  Setting to an additional content
      *  @param o New content pointer
@@ -95,29 +90,19 @@ protected:
     {
         contentPtr p = contentPtr(o);
         myContent e = { p, 0.0, RTTI::getTypeID<T>() };
+        ofFbo::Settings s;
+        s.width = bufferWidth;
+        s.height = bufferHeight;
+        s.useDepth = true;
+        s.useStencil = true;
 #ifdef TARGET_OPENGLES
-        mFbo.allocate(bufferWidth, bufferHeight, GL_RGBA );
+        s.internalformat = GL_RGBA;
 #else
-        mFbo.allocate(bufferWidth, bufferHeight, GL_RGBA32F_ARB);
+        s.internalformat = GL_RGBA32F_ARB;
 #endif
+        mFbo.allocate(s);
         mContents.push_back(e);
         return o;
-    }
-    
-    /**
-     *  Off-screen rendering.
-     */
-    void rendering(contentPtr p)
-    {
-        mFbo.begin();
-        glPushAttrib(GL_ALL_ATTRIB_BITS);
-        ofPushMatrix();
-        ofPushStyle();
-        p->draw();
-        ofPopStyle();
-        ofPopMatrix();
-        glPopAttrib();
-        mFbo.end();
     }
 
     
@@ -130,10 +115,9 @@ public:
      *  @param  doRegisterEvents    Register app events or (default: false)
      */
     Manager(const float width = ofGetWidth(),
-            const float height = ofGetHeight(),
-            const bool doRegistarEvents = false)
+            const float height = ofGetHeight())
     {
-        setup(width, height, doRegistarEvents);
+        setup(width, height);
     }
     virtual ~Manager(){};
     
@@ -143,42 +127,71 @@ public:
      *  @param height           Frame buffer height
      *  @param doRegistarEvents Register app events or (default: false)
      */
-    void setup(const float width, const float height,
-               const bool doRegistarEvents = false)
+    void setup(const float width, const float height)
     {
         bufferWidth = width;
         bufferHeight = height;
-        if (doRegistarEvents) registerAppEvents();
     }
     
     /**
-     *  Call content's "update".
+     *  Update contents.
      */
     void update()
     {
         for (const auto& e : mContents)
         {
-            if (isPlay(e))
-            {
-                e.obj->update();
-            }
+            e.obj->update();
         }
     }
     
     /**
-     *  Call content's "draw", and off-screen rendering.
+     *  Draw contents.
      */
-    void draw()
+    void draw(const float x, const float y, const float z, const float width, const float height)
     {
+        glClearColor(0, 0, 0, 0);
+
         for (const auto& e : mContents)
         {
-            if (isPlay(e))
+            if (e.opacity > 0.0)
             {
-                rendering(e.obj);
+                mFbo.begin();
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                glPushAttrib(GL_ALL_ATTRIB_BITS);
+                ofPushMatrix();
+                ofPushStyle();
+                e.obj->draw();
+                ofPopStyle();
+                ofPopMatrix();
+                glPopAttrib();
+                mFbo.end();
+                
+                ofSetColor(255, 255, 255, ofClamp(e.opacity * 255, 0, 255));
+                mFbo.getTextureReference().draw(x, y, z, width, height);
             }
         }
-
     }
+    
+    void draw()
+    {
+        draw(0, 0, 0, bufferWidth, bufferHeight);
+    }
+    
+    void draw(const float x, const float y)
+    {
+        draw(x, y, 0, bufferWidth, bufferHeight);
+    }
+    
+    void draw(const float x, const float y, const float width, const float height)
+    {
+        draw(x, y, 0, width, height);
+    }
+    
+    void draw(ofRectangle& rectangle)
+    {
+        draw(rectangle.x, rectangle.y, 0, rectangle.width, rectangle.height);
+    }
+    
     
     /**
      *  Exit contents.
@@ -191,130 +204,19 @@ public:
         }
     }
     
-    
-    /*
-     ofApp event listener
-     */
-    
-    void onUpdate(ofEventArgs &e)   { update(); }
-    void onDraw(ofEventArgs &e)     { draw(); }
-    void onExit(ofEventArgs &e)     { exit(); }
-    
-    void registerAppEvents(int prio = OF_EVENT_ORDER_AFTER_APP)
-    {
-        ofAddListener(ofEvents().update, this, &Manager::onUpdate, prio);
-        ofAddListener(ofEvents().draw, this, &Manager::onDraw, prio);
-        ofAddListener(ofEvents().exit, this, &Manager::onExit, prio);
-    }
-    
-    void unregisterAppEvents(int prio = OF_EVENT_ORDER_AFTER_APP)
-    {
-        ofRemoveListener(ofEvents().update, this, &Manager::onUpdate, prio);
-        ofRemoveListener(ofEvents().draw, this, &Manager::onDraw, prio);
-        ofRemoveListener(ofEvents().exit, this, &Manager::onExit, prio);
-    }
-    
-    
 public:
-    
-    /**
-     *  Run a content selected.
-     *  @param nid Number of target content.
-     *  @return If error, return FALSE.
-     */
-    bool setRunningOnly(const int nid)
+    void setOpacity(const int nid, const float value)
     {
-        if (!isValid(nid)) return false;
-        for (int i = 0; i < mContents.size(); ++i)
+        if (!isValid(nid)) return;
+        mContents[nid].opacity = value;
+    }
+    
+    void setOpacityAll(const float value)
+    {
+        for (auto& e : mContents)
         {
-            if (i == nid)
-            {
-                mContents[i].opacity = 1.0;
-                mContents[i].obj->start();
-            }
-            else {
-                mContents[i].opacity = 0.0;
-                mContents[i].obj->stop();
-            }
+            e.opacity = value;
         }
-        return true;
-    }
-    
-    bool setRunning(int * nids, const int size = 0)
-    {
-        if (nids == NULL) return false;
-        
-        int argc;
-        if (size == 0)
-        {
-            argc = sizeof(nids) / sizeof(nids[0]);
-        }
-        else argc = size;
-        
-        for (int i = 0; i < mContents.size(); ++i)
-        {
-            for (int j = 0; j < argc; ++j)
-            {
-                if (i == nids[j])
-                {
-                    mContents[i].opacity = 1.0;
-                    mContents[i].obj->start();
-                }
-                else {
-                    mContents[i].opacity = 0.0;
-                    mContents[i].obj->stop();
-                }
-            }
-        }
-        return true;
-    }
-    
-    bool setRunning(const int argc, ...)
-    {
-        if (argc < 1) return false;
-        
-        int targetNID[argc];
-        va_list args;
-        va_start(args , argc);
-        for (int i = 0 ; i < argc ; ++i)
-        {
-            targetNID[i] = va_arg(args , int);
-        }
-        va_end(args);
-        
-        return setRunning(targetNID, argc);
-    }
-    
-    bool setRunning(vector<int>& nids)
-    {
-        if (nids.empty()) return false;
-        return setRunning(nids.data(), nids.size());
-    }
-    
-    int changeContent(const int nid)
-    {
-        int targetNID = nid;
-        
-        if (nid < 0)
-            targetNID = 0;
-        else if (nid >= mContents.size())
-            targetNID = mContents.size() - 1;
-        
-        setRunningOnly(targetNID);
-        mCurrentRunID = targetNID;
-        return targetNID;
-    }
-    
-    int changeNextContent()
-    {
-        mCurrentRunID = changeContent(mCurrentRunID + 1);
-        return mCurrentRunID;
-    }
-    
-    int changePreviousContent()
-    {
-        mCurrentRunID = changeContent(mCurrentRunID - 1);
-        return mCurrentRunID;
     }
     
     void setFrameBufferSize(const float width, const float height)

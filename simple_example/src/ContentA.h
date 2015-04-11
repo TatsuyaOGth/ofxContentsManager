@@ -8,7 +8,7 @@ class ContentA : public ofxContentsManager::Content
     float mCounter;
     
 public:
-    ContentA(float radius = 10)
+    ContentA(float radius)
     {
         mRadius = radius;
         mCounter = 0;
