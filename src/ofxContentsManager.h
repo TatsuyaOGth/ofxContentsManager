@@ -59,7 +59,6 @@ protected:
     typedef shared_ptr<Content> contentPtr;
     typedef vector<myContent>::iterator contents_it;
     
-    int     mCurrentRunID;  ///< content ID which is currently running
     float   bufferWidth;
     float   bufferHeight;
     ofFbo   mFbo;

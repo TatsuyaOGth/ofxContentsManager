@@ -53,7 +53,6 @@ public:
         mesh.draw();
         ofPopMatrix();
         
-        ofDrawBitmapString("Draw " + getName(), 20, 20);
     }
     
     // setter
