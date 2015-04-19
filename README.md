@@ -1,2 +1,2 @@
-# ofxContentsManager
-Easy managing contents tool for openFrameworks
+# ofxContentsMixer
+An addon for openFrameworks is a mixer console mixed any contents.
