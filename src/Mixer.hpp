@@ -2,49 +2,9 @@
 
 #include "common.h"
 
-OFX_CONTENTS_MANAGER_BEGIN_NAMESPACE
+OFX_CONTENTS_MIXER_BEGIN_NAMESPACE
 
-class Content
-{
-    float bufferWidth, bufferHeight;
-    
-protected:
-    float getWidth()  const { return bufferWidth;  }
-    float getHeight() const { return bufferHeight; }
-    
-public:
-    Content():bufferWidth(ofGetWidth()), bufferHeight(ofGetHeight()){}
-    virtual ~Content(){}
-    
-    virtual void update(){}
-    virtual void draw(){}
-    virtual void exit(){}
-    
-    virtual void start(){}; ///< start/restart callback
-    virtual void stop(){};  ///< stop callback
-    
-
-    /**
-     *  This object name
-     *  @return object name string
-     */
-    string getName()
-    {
-        const type_info& id = typeid(*this);
-        int stat;
-        char *name = abi::__cxa_demangle(id.name(), 0, 0, &stat);
-        if (name != NULL && stat == 0) {
-            string myName(name);
-            return myName;
-        }
-        ofLogWarning(MODULE_NAME) << "faild get object name";
-        return "";
-    }
-};
-
-//---------------------------------------------------------------------------
-
-class Manager
+class Mixer
 {
 protected:
     typedef struct
@@ -103,7 +63,7 @@ protected:
         mContents.push_back(e);
         return o;
     }
-
+    
     
 public:
     
@@ -113,12 +73,12 @@ public:
      *  @param  height              Frame buffer height (default: ofGetHeight())
      *  @param  doRegisterEvents    Register app events or (default: false)
      */
-    Manager(const float width = ofGetWidth(),
-            const float height = ofGetHeight())
+    Mixer(const float width = ofGetWidth(),
+          const float height = ofGetHeight())
     {
         setup(width, height);
     }
-    virtual ~Manager(){};
+    virtual ~Mixer(){};
     
     /**
      *  Setup Manager
@@ -149,7 +109,7 @@ public:
     void draw(const float x, const float y, const float z, const float width, const float height)
     {
         glClearColor(0, 0, 0, 0);
-
+        
         for (const auto& e : mContents)
         {
             if (e.opacity > 0.0)
@@ -382,4 +342,4 @@ public:
     }
 };
 
-OFX_CONTENTS_MANAGER_END_NAMESPACE
+OFX_CONTENTS_MIXER_END_NAMESPACE

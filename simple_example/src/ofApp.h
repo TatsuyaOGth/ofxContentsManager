@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ofMain.h"
-#include "ofxContentsManager.h"
+#include "ofxContentsMixer.h"
 #include "ofxGui.h"
 
 class ofApp : public ofBaseApp{
@@ -21,7 +21,7 @@ public:
     void dragEvent(ofDragInfo dragInfo);
     void gotMessage(ofMessage msg);
     
-    ofxContentsManager::Manager* mContents;
+    ofxContentsMixer::Mixer* mContents;
     
     ofxPanel gui;
     ofParameter<float> faderA;

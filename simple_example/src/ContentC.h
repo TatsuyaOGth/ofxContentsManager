@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ofxContentsManager.h"
+#include "ofxContentsMixer.h"
 
-class ContentC : public ofxContentsManager::Content
+class ContentC : public ofxContentsMixer::Content
 {
     float mRadius;
     float mCounter;

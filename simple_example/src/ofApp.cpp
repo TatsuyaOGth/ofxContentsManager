@@ -6,7 +6,7 @@
 //--------------------------------------------------------------
 void ofApp::setup(){
 
-    mContents = new ofxContentsManager::Manager(ofGetWidth(), ofGetHeight());
+    mContents = new ofxContentsMixer::Mixer(ofGetWidth(), ofGetHeight());
     mContents->addContent<ContentA>(200);
     mContents->addContent<ContentB>(300);
     mContents->addContent<ContentC>(400);

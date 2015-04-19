@@ -67,8 +67,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		27FCF6413A28E14D0FFD29B2 /* ofxContentsManager.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = ofxContentsManager.h; path = ../../../addons/ofxContentsManager/src/ofxContentsManager.h; sourceTree = SOURCE_ROOT; };
-		84971FEC0D47CF056B1E28C3 /* common.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = common.h; path = ../../../addons/ofxContentsManager/src/common.h; sourceTree = SOURCE_ROOT; };
 		912CBF3E1AD827590006117C /* ContentA.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ContentA.h; sourceTree = "<group>"; };
 		912CBF401AD82EEE0006117C /* ContentB.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ContentB.h; sourceTree = "<group>"; };
 		912CBF411AD82EEE0006117C /* ContentC.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ContentC.h; sourceTree = "<group>"; };
@@ -89,6 +87,10 @@
 		912CBF571AD852940006117C /* ofxSliderGroup.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxSliderGroup.h; sourceTree = "<group>"; };
 		912CBF581AD852940006117C /* ofxToggle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxToggle.cpp; sourceTree = "<group>"; };
 		912CBF591AD852940006117C /* ofxToggle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxToggle.h; sourceTree = "<group>"; };
+		91F0C5231AE41CFA00630301 /* common.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = common.h; path = ../src/common.h; sourceTree = "<group>"; };
+		91F0C5241AE41CFA00630301 /* ofxContentsMixer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ofxContentsMixer.h; path = ../src/ofxContentsMixer.h; sourceTree = "<group>"; };
+		91F0C5251AE41D8800630301 /* Content.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Content.hpp; path = ../src/Content.hpp; sourceTree = "<group>"; };
+		91F0C5261AE41DAF00630301 /* Mixer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Mixer.hpp; path = ../src/Mixer.hpp; sourceTree = "<group>"; };
 		BBAB23BE13894E4700AA2426 /* GLUT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLUT.framework; path = ../../../libs/glut/lib/osx/GLUT.framework; sourceTree = "<group>"; };
 		E4328143138ABC890047C5CB /* openFrameworksLib.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = openFrameworksLib.xcodeproj; path = ../../../libs/openFrameworksCompiled/project/osx/openFrameworksLib.xcodeproj; sourceTree = SOURCE_ROOT; };
 		E45BE9710E8CC7DD009D7055 /* AGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AGL.framework; path = /System/Library/Frameworks/AGL.framework; sourceTree = "<absolute>"; };
@@ -177,8 +179,10 @@
 		AEC4FBB27B4C666B95736402 /* src */ = {
 			isa = PBXGroup;
 			children = (
-				84971FEC0D47CF056B1E28C3 /* common.h */,
-				27FCF6413A28E14D0FFD29B2 /* ofxContentsManager.h */,
+				91F0C5231AE41CFA00630301 /* common.h */,
+				91F0C5241AE41CFA00630301 /* ofxContentsMixer.h */,
+				91F0C5251AE41D8800630301 /* Content.hpp */,
+				91F0C5261AE41DAF00630301 /* Mixer.hpp */,
 			);
 			name = src;
 			sourceTree = "<group>";
@@ -187,7 +191,7 @@
 			isa = PBXGroup;
 			children = (
 				912CBF471AD852940006117C /* ofxGui */,
-				D2AD99E0BA4E47080D75A388 /* ofxContentsManager */,
+				D2AD99E0BA4E47080D75A388 /* ofxContentsMixer */,
 			);
 			name = addons;
 			sourceTree = "<group>";
@@ -221,12 +225,12 @@
 			name = "3rd party frameworks";
 			sourceTree = "<group>";
 		};
-		D2AD99E0BA4E47080D75A388 /* ofxContentsManager */ = {
+		D2AD99E0BA4E47080D75A388 /* ofxContentsMixer */ = {
 			isa = PBXGroup;
 			children = (
 				AEC4FBB27B4C666B95736402 /* src */,
 			);
-			name = ofxContentsManager;
+			name = ofxContentsMixer;
 			sourceTree = "<group>";
 		};
 		E4328144138ABC890047C5CB /* Products */ = {
@@ -414,8 +418,8 @@
 				GCC_WARN_UNUSED_VARIABLE = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(OF_CORE_HEADERS)",
-					../../../addons/ofxContentsManager/libs,
-					../../../addons/ofxContentsManager/src,
+					../../../addons/ofxContentsMixer/libs,
+					../../../addons/ofxContentsMixer/src,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OTHER_CPLUSPLUSFLAGS = (
@@ -450,8 +454,8 @@
 				GCC_WARN_UNUSED_VARIABLE = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(OF_CORE_HEADERS)",
-					../../../addons/ofxContentsManager/libs,
-					../../../addons/ofxContentsManager/src,
+					../../../addons/ofxContentsMixer/libs,
+					../../../addons/ofxContentsMixer/src,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OTHER_CPLUSPLUSFLAGS = (
