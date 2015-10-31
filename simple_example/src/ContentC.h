@@ -12,12 +12,9 @@ public:
     {
         mRadius = radius;
         mCounter = 0;
+        cout << getName() << " setup" << endl;
     }
-    
-    void setup()
-    {
-    }
-    
+
     void update()
     {
         mCounter += ofGetLastFrameTime();

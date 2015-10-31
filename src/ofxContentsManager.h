@@ -6,12 +6,6 @@ namespace ofxContentsManager
 {
     class Manager;
     
-    //---------------------------------------------------------------------------------------
-    // COMMON
-    //---------------------------------------------------------------------------------------
-    static const string MODULE_NAME = "ofxContentsManager";
-    
-    
     
     //---------------------------------------------------------------------------------------
     /*
@@ -38,6 +32,12 @@ namespace ofxContentsManager
         
         virtual void willRemove(){}; /// callback when just removing this object or called exit from base manager
         virtual void bufferResized(float width, float height){} ///< callback when changed buffer size
+        
+        /**
+         *  This object name, you can override this.
+         *  @return object name string
+         */
+        virtual string getName();
     };
     
     
@@ -67,12 +67,8 @@ namespace ofxContentsManager
         ofFbo::Settings mFboSettings;
         
     protected:
-        /**
-         *  Check id
-         *  @param nid Target content ID
-         *  @return If exist then true else false
-         */
         bool isValid(const int nid);
+        bool isValid(const string& name);
         
     public:
         /**
@@ -124,11 +120,12 @@ namespace ofxContentsManager
         /**
          *  Draw contents.
          */
-        void draw(const float x, const float y, const float z, const float width, const float height);
         void draw();
         void draw(const float x, const float y);
         void draw(const float x, const float y, const float width, const float height);
+        void draw(const float x, const float y, const float z, const float width, const float height);
         void draw(ofRectangle& rectangle);
+        
         
         
         /**
@@ -140,8 +137,8 @@ namespace ofxContentsManager
         void setOpacity(const int nid, const float value);
         void setOpacityAll(const float value);
         
-        void setupBuffer(const float width, const float height, const int internalformat = GL_RGBA, const int numSamples = 0);
-        void setupBuffer(const ofFbo::Settings& settings);
+        void allocateBuffer(const float width, const float height, const int internalformat = GL_RGBA, const int numSamples = 0);
+        void allocateBuffer(const ofFbo::Settings& settings);
         
         /**
          *  Add content
@@ -150,14 +147,45 @@ namespace ofxContentsManager
         void addContent(Content* newContentPtr);
         
         bool removeContent(const int nid);
+        void removeContent(const string& name);
         
+        int getContentsSize();
+        void clear();
+
         
         Content* getContent(const int nid);
-        
         vector<Content*> getAllContents();
-                
-        int getContentsSize();
         
-        void clear();
+        template<typename T>
+        T* getContent(const string &name)
+        {
+            contents_it it = mContents.begin();
+            while (it != mContents.end())
+            {
+                if ((*it)->obj->getName() == name)
+                {
+                    // return first one
+                    return dynamic_cast<T*>((*it)->obj.get());
+                }
+                else ++it;
+            }
+        }
+        
+        template<typename T>
+        vector<T*> getContentsSameName(const string &name)
+        {
+            vector<Content*> dst;
+            contents_it it = mContents.begin();
+            while (it != mContents.end())
+            {
+                if ((*it)->obj->getName() == name)
+                {
+                    dst.push_back(dynamic_cast<T*>((*it)->obj.get()));
+                }
+                ++it;
+            }
+            return dst;
+        }
+        
     };
 }

@@ -1,7 +1,37 @@
 #include "ofxContentsManager.h"
 
+static const string MODULE_NAME = "ofxContentsManager";
+
 namespace ofxContentsManager
 {
+    
+    //---------------------------------------------------------------------------------------
+    /*
+     BASE CONTENT CLASS
+     */
+    //---------------------------------------------------------------------------------------
+    
+    string Content::getName()
+    {
+        const type_info& id = typeid(*this);
+        int stat;
+        char *name = abi::__cxa_demangle(id.name(), 0, 0, &stat);
+        if (name != NULL && stat == 0) {
+            string myName(name);
+            return myName;
+        }
+        ofLogWarning(MODULE_NAME) << "faild get object name";
+        return "";
+    }
+    
+    
+    
+    //---------------------------------------------------------------------------------------
+    /*
+     MANAGER CLASS
+     */
+    //---------------------------------------------------------------------------------------
+    
     bool Manager::isValid(const int nid)
     {
         if (mContents.empty() || nid < 0 || nid >= mContents.size())
@@ -122,13 +152,13 @@ namespace ofxContentsManager
         }
     }
     
-    void Manager::setupBuffer(const float width, const float height, const int internalformat, const int numSamples)
+    void Manager::allocateBuffer(const float width, const float height, const int internalformat, const int numSamples)
     {
         setup(width, height, internalformat, numSamples);
-        setupBuffer(mFboSettings);
+        allocateBuffer(mFboSettings);
     }
     
-    void Manager::setupBuffer(const ofFbo::Settings& settings)
+    void Manager::allocateBuffer(const ofFbo::Settings& settings)
     {
         for (auto& o : mContents)
         {
@@ -161,6 +191,20 @@ namespace ofxContentsManager
         return true;
     }
     
+    void Manager::removeContent(const string& name)
+    {
+        contents_it it = mContents.begin();
+        while (it != mContents.end())
+        {
+            if ((*it)->obj->getName() == name)
+            {
+                (*it)->obj->willRemove();
+                it = mContents.erase(it);
+            }
+            else ++it;
+        }
+    }
+    
     Content* Manager::getContent(const int nid)
     {
         if (!isValid(nid)) return NULL;
@@ -175,7 +219,7 @@ namespace ofxContentsManager
         while (it != mContents.end())
         {
             dst.push_back((*it)->obj.get());
-            it++;
+            ++it;
         }
         return dst;
     }

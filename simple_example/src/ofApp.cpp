@@ -8,12 +8,12 @@ void ofApp::setup(){
 
     mContentsManager = new ofxContentsManager::Manager( ofGetWidth(), ofGetHeight(), GL_RGBA, 0);
     mContentsManager->addContent( new ContentA(200) );
-    mContentsManager->addContent( new ContentA(300) );
-    mContentsManager->addContent( new ContentA(400) );
+    mContentsManager->addContent( new ContentB(300) );
+    mContentsManager->addContent( new ContentC(400) );
     
     gui.setup();
     gui.setName("FADERS");
-    gui.add(faderA.set("CONTENT_A", 0, 0, 1));
+    gui.add(faderA.set("CONTENT_A", 1, 0, 1));
     gui.add(faderB.set("CONTENT_B", 0, 0, 1));
     gui.add(faderC.set("CONTENT_C", 0, 0, 1));
     
@@ -33,7 +33,7 @@ void ofApp::update(){
 //--------------------------------------------------------------
 void ofApp::draw(){
     
-    mContentsManager->draw();
+    mContentsManager->draw(0, 0, ofGetWidth(), ofGetHeight());
     gui.draw();
 }
 
@@ -45,6 +45,11 @@ void ofApp::keyPressed(int key){
 //--------------------------------------------------------------
 void ofApp::keyReleased(int key){
 
+    // full screen
+    if (key == 'f') ofToggleFullscreen();
+    
+    // buffer reallocate
+    if (key == 'r') mContentsManager->allocateBuffer(ofGetWidth(), ofGetHeight());
 }
 
 //--------------------------------------------------------------

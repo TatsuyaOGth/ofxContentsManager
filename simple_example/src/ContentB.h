@@ -12,10 +12,7 @@ public:
     {
         mRadius = radius;
         mCounter = 0;
-    }
-    
-    void setup()
-    {
+        cout << getName() << " setup" << endl;
     }
     
     void update()
