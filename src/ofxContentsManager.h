@@ -17,6 +17,7 @@ namespace ofxContentsManager
         }
     };
     
+    
     //---------------------------------------------------------------------------------------
     /*
         BASE CONTENT CLASS
@@ -29,6 +30,8 @@ namespace ofxContentsManager
         float   bufferWidth;
         float   bufferHeight;
         string  contentName;
+        
+        void    onOpacityChanged(float& e) { opacityChanged(e); }
         
     protected:
         float   getWidth()  const { return bufferWidth;  }
@@ -43,6 +46,7 @@ namespace ofxContentsManager
         
         virtual void exit(){}; /// callback when just removing this object or called exit from base manager
         virtual void bufferResized(float width, float height){} ///< callback when changed buffer size
+        virtual void opacityChanged(float opacity){} ///< callback when base manager changing opacity
         
         /**
          *  Setting this object name
@@ -405,6 +409,7 @@ namespace ofxContentsManager
                 if (o->typeID == RTTI::getTypeID<T>())
                 {
                     o->obj->exit();
+                    o->opacity.removeListener(o->obj, &Content::onOpacityChanged);
                     delete o->obj;
                     delete o;
                     it = mContents.erase(it);
@@ -450,9 +455,8 @@ namespace ofxContentsManager
             o->fbo.allocate(mFboSettings);
             o->typeID = RTTI::getTypeID<T>();
             mOpacityParams.add(o->opacity.set(o->obj->getName(), 0.0, 0.0, 1.0));
+            o->opacity.addListener(o->obj, &Content::onOpacityChanged);
             return newContentPtr;
         }
     };
-    
-
 }

@@ -252,6 +252,7 @@ namespace ofxContentsManager
         contents_it it = mContents.begin() + nid;
         myContent* o = *it;
         o->obj->exit();
+        o->opacity.removeListener(o->obj, &Content::onOpacityChanged);
         delete o->obj;
         delete o;
         mContents.erase(it);
@@ -267,6 +268,7 @@ namespace ofxContentsManager
             {
                 myContent* o = *it;
                 o->obj->exit();
+                o->opacity.removeListener(o->obj, &Content::onOpacityChanged);
                 delete o->obj;
                 delete o;
                 it = mContents.erase(it);

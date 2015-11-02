@@ -58,6 +58,10 @@ public:
             ofPopMatrix();
         }
         ofPopMatrix();
-        
+    }
+    
+    void opacityChanged(float opacity)
+    {
+        cout << getName() << " opacity: " << opacity << endl;
     }
 };
