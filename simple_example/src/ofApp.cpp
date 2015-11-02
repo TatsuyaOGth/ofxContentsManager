@@ -7,9 +7,9 @@
 void ofApp::setup(){
 
     mContentsManager.setup( ofGetWidth(), ofGetHeight());
-    mContentsManager.addContent( new ContentA() );
-    mContentsManager.addContent( new ContentB() );
-    mContentsManager.addContent( new ContentC(400) );
+    mContentsManager.addContent<ContentA>();
+    mContentsManager.addContent<ContentB>();
+    mContentsManager.addContent<ContentC>(400);
     
     gui.setup();
     gui.setName("FADERS");

@@ -21,14 +21,14 @@ namespace ofxContentsManager
     {
         if (contentName.empty())
         {
-        const type_info& id = typeid(*this);
-        int stat;
-        char *name = abi::__cxa_demangle(id.name(), 0, 0, &stat);
-        if (name != NULL && stat == 0) {
-            return string(name);
-        }
-        ofLogWarning(MODULE_NAME) << "faild get object name";
-        return "";
+            const type_info& id = typeid(*this);
+            int stat;
+            char *name = abi::__cxa_demangle(id.name(), 0, 0, &stat);
+            if (name != NULL && stat == 0) {
+                return string(name);
+            }
+            ofLogWarning(MODULE_NAME) << "faild get object name";
+            return "";
         }
         else return contentName;
     }
@@ -190,13 +190,7 @@ namespace ofxContentsManager
     
     void Manager::addContent(ofxContentsManager::Content *newContentPtr)
     {
-        mContents.push_back(myContentPtr(new myContent()));
-        myContentPtr& o = mContents.back();
-        o->obj = contentPtr(newContentPtr);
-        o->obj->bufferWidth =  mFboSettings.width;
-        o->obj->bufferHeight = mFboSettings.height;
-        o->fbo.allocate(mFboSettings);
-        mOpacityParams.add(o->opacity.set(o->obj->getName(), 0.0, 0.0, 1.0));
+        setupContent(newContentPtr);
     }
     
     
@@ -204,7 +198,10 @@ namespace ofxContentsManager
     {
         if (!isValid(nid)) return false;
         contents_it it = mContents.begin() + nid;
-        (*it)->obj->exit();
+        myContent* o = *it;
+        o->obj->exit();
+        delete o->obj;
+        delete o;
         mContents.erase(it);
         return true;
     }
@@ -216,7 +213,10 @@ namespace ofxContentsManager
         {
             if ((*it)->obj->getName() == name)
             {
-                (*it)->obj->exit();
+                myContent* o = *it;
+                o->obj->exit();
+                delete o->obj;
+                delete o;
                 it = mContents.erase(it);
             }
             else ++it;
@@ -227,7 +227,7 @@ namespace ofxContentsManager
     {
         if (!isValid(nid)) return NULL;
         contents_it it = mContents.begin() + nid;
-        return (*it)->obj.get();
+        return (*it)->obj;
     }
     
     vector<Content*> Manager::getAllContents()
@@ -236,7 +236,7 @@ namespace ofxContentsManager
         contents_it it = mContents.begin();
         while (it != mContents.end())
         {
-            dst.push_back((*it)->obj.get());
+            dst.push_back((*it)->obj);
             ++it;
         }
         return dst;
@@ -255,11 +255,15 @@ namespace ofxContentsManager
     
     void Manager::clear()
     {
-        for (const auto& e : mContents)
+        typename vector<myContent*>::iterator it = mContents.begin();
+        while (it != mContents.end())
         {
-            e->obj->exit();
+            myContent* o = *it;
+            o->obj->exit();
+            delete o->obj;
+            delete o;
         }
-        mOpacityParams.clear();
         mContents.clear();
+        mOpacityParams.clear();
     }
 }
