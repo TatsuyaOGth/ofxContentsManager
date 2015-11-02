@@ -51,7 +51,9 @@ namespace ofxContentsManager
         return true;
     }
     
-    Manager::Manager() : bBackgroundUpdate(false)
+    Manager::Manager()
+    : bBackgroundUpdate(false)
+    , mCurrentContent(0)
     {
     }
     
@@ -163,6 +165,56 @@ namespace ofxContentsManager
         {
             e->opacity = ofClamp(opacity, 0.0, 1.0);
         }
+    }
+    
+    void Manager::switchContent(const int nid)
+    {
+        if (!isValid(nid)) return;
+        for (int i = 0; i < mContents.size(); ++i)
+        {
+            if (i == nid)
+            {
+                mContents[i]->opacity = 1.0;
+            }
+            else {
+                mContents[i]->opacity = 0.0;
+            }
+        }
+        mCurrentContent = nid;
+    }
+    
+    void Manager::switchContent(const string& name)
+    {
+        for (auto& o : mContents)
+        {
+            if (o->obj->getName() == name)
+            {
+                o->opacity = 1.0;
+            }
+            else {
+                o->opacity = 0.0;
+            }
+        }
+    }
+    
+    void Manager::switchNextContent(bool loop)
+    {
+        mCurrentContent++;
+        if (mCurrentContent >= mContents.size())
+        {
+            loop ? mCurrentContent = 0 : mCurrentContent = mContents.size() - 1;
+        }
+        switchContent(mCurrentContent);
+    }
+    
+    void Manager::switchPreviousContent(bool loop)
+    {
+        mCurrentContent--;
+        if (mCurrentContent < 0)
+        {
+            loop ? mCurrentContent = mContents.size() - 1 : mCurrentContent = 0;
+        }
+        switchContent(mCurrentContent);
     }
     
     void Manager::enableBackgroundUpdate(bool enable)

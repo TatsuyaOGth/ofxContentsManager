@@ -72,7 +72,6 @@ namespace ofxContentsManager
     protected:
         typedef struct
         {
-        public:
             Content*            obj;
             ofParameter<float>  opacity;
             ofFbo               fbo;
@@ -86,7 +85,7 @@ namespace ofxContentsManager
         ofFbo::Settings         mFboSettings;
         ofParameterGroup        mOpacityParams;
         bool                    bBackgroundUpdate;
-        
+        int                     mCurrentContent;
         
     protected:
         bool isValid(const int nid);
@@ -158,6 +157,7 @@ namespace ofxContentsManager
         void exit();
         
     public:
+        
         /**
          *  Set the content's opacity
          *
@@ -180,6 +180,34 @@ namespace ofxContentsManager
          *  @param opacity Opacity (0.0-1.0)
          */
         void setOpacityAll(const float opacity);
+        
+        /**
+         *  Switching content
+         *
+         *  @param nid Target constnt's ID (order of instances)
+         */
+        void switchContent(const int nid);
+        
+        /**
+         *  Switching consent
+         *
+         *  @param name Target content's name
+         */
+        void switchContent(const string& name);
+        
+        /**
+         *  Switching next content
+         *
+         *  @param loop Is go back to first (default = false)
+         */
+        void switchNextContent(bool loop = false);
+        
+        /**
+         *  Switching previous content
+         *
+         *  @param loop Is go back to last (default = false)
+         */
+        void switchPreviousContent(bool loop = false);
         
         /**
          *  Setting background update flag, set true if you need update all contents even opacity zero.
