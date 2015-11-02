@@ -11,17 +11,26 @@ namespace ofxContentsManager
      */
     //---------------------------------------------------------------------------------------
     
+    void Content::setName(const string &name)
+    {
+        contentName = name;
+    }
+    
+    
     string Content::getName()
     {
+        if (contentName.empty())
+        {
         const type_info& id = typeid(*this);
         int stat;
         char *name = abi::__cxa_demangle(id.name(), 0, 0, &stat);
         if (name != NULL && stat == 0) {
-            string myName(name);
-            return myName;
+            return string(name);
         }
         ofLogWarning(MODULE_NAME) << "faild get object name";
         return "";
+        }
+        else return contentName;
     }
     
     
@@ -36,25 +45,14 @@ namespace ofxContentsManager
     {
         if (mContents.empty() || nid < 0 || nid >= mContents.size())
         {
-            ofLogError(MODULE_NAME) << "No content with id: " << nid;
+            ofLogError(MODULE_NAME) << "Manager has not content's ID: " << nid;
             return false;
         }
         return true;
     }
     
-    Manager::Manager()
+    Manager::Manager() : bBackgroundUpdate(false)
     {
-        setup(0, 0);
-    }
-    
-    Manager::Manager(const float width, const float height, const int internalformat, const int numSamples)
-    {
-        setup(width, height, internalformat, numSamples);
-    }
-    
-    Manager::Manager(const ofFbo::Settings& settings)
-    {
-        setup(settings);
     }
     
     Manager::~Manager()
@@ -79,20 +77,12 @@ namespace ofxContentsManager
     {
         for (const auto& e : mContents)
         {
-            e->obj->update();
-        }
-    }
-    
-    void Manager::draw(const float x, const float y, const float z, const float width, const float height)
-    {
-        glClearColor(0, 0, 0, 0);
-        
-        for (const auto& e : mContents)
-        {
-            if (e->opacity > 0.0)
+            if (e->opacity > 0.0 || bBackgroundUpdate)
             {
+                e->obj->update();
+                
                 e->fbo.begin();
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                ofClear(0);
                 glPushAttrib(GL_ALL_ATTRIB_BITS);
                 ofPushMatrix();
                 ofPushStyle();
@@ -101,9 +91,21 @@ namespace ofxContentsManager
                 ofPopMatrix();
                 glPopAttrib();
                 e->fbo.end();
-                
-                ofSetColor(255, 255, 255, ofClamp(e->opacity * 255, 0, 255));
+            }
+        }
+    }
+    
+    void Manager::draw(const float x, const float y, const float z, const float width, const float height)
+    {
+        ofColor currentColor = ofGetStyle().color;
+        for (const auto& e : mContents)
+        {
+            if (e->opacity > 0.0)
+            {
+                ofPushStyle();
+                ofSetColor(currentColor, e->opacity * currentColor.a);
                 e->fbo.getTextureReference().draw(x, y, z, width, height);
+                ofPopStyle();
             }
         }
     }
@@ -132,24 +134,40 @@ namespace ofxContentsManager
     {
         for (const auto& e : mContents)
         {
-            e->obj->willRemove();
+            e->obj->exit();
         }
     }
     
     
     
-    void Manager::setOpacity(const int nid, const float value)
+    void Manager::setOpacity(const int nid, const float opacity)
     {
         if (!isValid(nid)) return;
-        mContents[nid]->opacity = value;
+        mContents[nid]->opacity = ofClamp(opacity, 0.0, 1.0);
     }
     
-    void Manager::setOpacityAll(const float value)
+    void Manager::setOpacity(const string &name, const float opacity)
+    {
+        for (auto& o : mContents)
+        {
+            if (o->obj->getName() == name)
+            {
+                o->opacity = ofClamp(opacity, 0.0, 1.0);
+            }
+        }
+    }
+    
+    void Manager::setOpacityAll(const float opacity)
     {
         for (auto& e : mContents)
         {
-            e->opacity = value;
+            e->opacity = ofClamp(opacity, 0.0, 1.0);
         }
+    }
+    
+    void Manager::enableBackgroundUpdate(bool enable)
+    {
+        bBackgroundUpdate = enable;
     }
     
     void Manager::allocateBuffer(const float width, const float height, const int internalformat, const int numSamples)
@@ -177,8 +195,8 @@ namespace ofxContentsManager
         o->obj = contentPtr(newContentPtr);
         o->obj->bufferWidth =  mFboSettings.width;
         o->obj->bufferHeight = mFboSettings.height;
-        o->opacity = 0.0;
         o->fbo.allocate(mFboSettings);
+        mOpacityParams.add(o->opacity.set(o->obj->getName(), 0.0, 0.0, 1.0));
     }
     
     
@@ -186,7 +204,7 @@ namespace ofxContentsManager
     {
         if (!isValid(nid)) return false;
         contents_it it = mContents.begin() + nid;
-        (*it)->obj->willRemove();
+        (*it)->obj->exit();
         mContents.erase(it);
         return true;
     }
@@ -198,7 +216,7 @@ namespace ofxContentsManager
         {
             if ((*it)->obj->getName() == name)
             {
-                (*it)->obj->willRemove();
+                (*it)->obj->exit();
                 it = mContents.erase(it);
             }
             else ++it;
@@ -224,17 +242,24 @@ namespace ofxContentsManager
         return dst;
     }
     
-    int Manager::getContentsSize()
+    int Manager::getNumContents()
     {
         return mContents.size();
+    }
+    
+    const ofParameterGroup& Manager::getOpacityParameterGroup(const string& groupName)
+    {
+        mOpacityParams.setName(groupName);
+        return mOpacityParams;
     }
     
     void Manager::clear()
     {
         for (const auto& e : mContents)
         {
-            e->obj->willRemove();
+            e->obj->exit();
         }
+        mOpacityParams.clear();
         mContents.clear();
     }
 }

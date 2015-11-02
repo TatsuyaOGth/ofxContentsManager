@@ -6,7 +6,6 @@ namespace ofxContentsManager
 {
     class Manager;
     
-    
     //---------------------------------------------------------------------------------------
     /*
         BASE CONTENT CLASS
@@ -14,10 +13,11 @@ namespace ofxContentsManager
     //---------------------------------------------------------------------------------------
     class Content
     {
-        friend class Manager;
+        friend  class Manager;
         
         float   bufferWidth;
         float   bufferHeight;
+        string  contentName;
         
     protected:
         float   getWidth()  const { return bufferWidth;  }
@@ -30,14 +30,22 @@ namespace ofxContentsManager
         virtual void update(){}
         virtual void draw(){}
         
-        virtual void willRemove(){}; /// callback when just removing this object or called exit from base manager
+        virtual void exit(){}; /// callback when just removing this object or called exit from base manager
         virtual void bufferResized(float width, float height){} ///< callback when changed buffer size
         
         /**
-         *  This object name, you can override this.
+         *  Setting this object name
+         *
+         *  @param name name
+         */
+        void setName(const string& name);
+        
+        /**
+         *  Offer this object name, if the object had not been setting name, this function return tha class name
+         *
          *  @return object name string
          */
-        virtual string getName();
+        string getName();
     };
     
     
@@ -48,57 +56,46 @@ namespace ofxContentsManager
      */
     //---------------------------------------------------------------------------------------
     
-    class Manager
+    class Manager : public Content
     {
     protected:
         typedef struct
         {
         public:
-            ofPtr<Content>  obj;
-            float           opacity;
-            ofFbo           fbo;
+            ofPtr<Content>      obj;
+            ofParameter<float>  opacity;
+            ofFbo               fbo;
         } myContent;
         typedef ofPtr<Content>   contentPtr;
         typedef ofPtr<myContent> myContentPtr;
         typedef vector<myContentPtr>::iterator contents_it;
         
-        vector<myContentPtr> mContents;
+        vector<myContentPtr>    mContents;
         
-        ofFbo::Settings mFboSettings;
+        ofFbo::Settings         mFboSettings;
+        ofParameterGroup        mOpacityParams;
+        bool                    bBackgroundUpdate;
+        
         
     protected:
         bool isValid(const int nid);
         bool isValid(const string& name);
         
     public:
+        
         /**
-         *  Constractor.
+         *  Constractor
          */
         Manager();
         
         /**
-         *  Constractor.
-         *  @param width           Frame buffer width
-         *  @param height          Frame buffer height
-         *  @param internalformat  Frame buffer internal format (default = GL_RGBA)
-         *  @param numSamples      Frame buffer number of samples (default = 0)
-         */
-        Manager(const float width, const float height, const int internalformat = GL_RGBA, const int numSamples = 0);
-        
-        /**
-         *  Constractor.
-         *  @param settings         ofFbo settings
-         */
-        Manager(const ofFbo::Settings& settings);
-        
-        /**
          *  Destructor.
-         *  @param settings         ofFbo settings
          */
         virtual ~Manager();
         
         /**
          *  Setup Manager
+         *
          *  @param width            Frame buffer width
          *  @param height           Frame buffer height
          *  @param internalformat   Frame buffer internal format (default = GL_RGBA)
@@ -108,17 +105,35 @@ namespace ofxContentsManager
         
         /**
          *  Setup Manager
+         *
          *  @param settings         ofFbo settings
          */
         void setup(const ofFbo::Settings& settings);
         
         /**
-         *  Update contents.
+         *  Allocate frame buffer, if you need reallocate frame buffers
+         *
+         *  @param width          Frame buffer width
+         *  @param height         Frame buffer height
+         *  @param internalformat Frame buffer internal format (default = GL_RGBA)
+         *  @param numSamples     Frame buffer number of samples (default = 0)
+         */
+        void allocateBuffer(const float width, const float height, const int internalformat = GL_RGBA, const int numSamples = 0);
+        
+        /**
+         *  Allocate frame buffer, if you need reallocate frame buffers
+         *
+         *  @param settings ofFbo settings object
+         */
+        void allocateBuffer(const ofFbo::Settings& settings);
+        
+        /**
+         *  Update contents
          */
         void update();
         
         /**
-         *  Draw contents.
+         *  Draw contents
          */
         void draw();
         void draw(const float x, const float y);
@@ -126,66 +141,101 @@ namespace ofxContentsManager
         void draw(const float x, const float y, const float z, const float width, const float height);
         void draw(ofRectangle& rectangle);
         
-        
-        
         /**
          *  Exit contents.
          */
         void exit();
         
     public:
-        void setOpacity(const int nid, const float value);
-        void setOpacityAll(const float value);
+        /**
+         *  Set the content's opacity
+         *
+         *  @param nid     Target content ID (order of instances)
+         *  @param opacity Opacity (0.0-1.0)
+         */
+        void setOpacity(const int nid, const float opacity);
         
-        void allocateBuffer(const float width, const float height, const int internalformat = GL_RGBA, const int numSamples = 0);
-        void allocateBuffer(const ofFbo::Settings& settings);
+        /**
+         *  Set the content's opacity
+         *
+         *  @param name    Target content's name
+         *  @param opacity Opacity (0.0-1.0)
+         */
+        void setOpacity(const string& name, const float opacity);
+        
+        /**
+         *  Set the all content's opacity
+         *
+         *  @param opacity Opacity (0.0-1.0)
+         */
+        void setOpacityAll(const float opacity);
+        
+        /**
+         *  Setting background update flag, set true if you need update all contents even opacity zero.
+         *  (default is disable)
+         *
+         *  @param enable true or false
+         */
+        void enableBackgroundUpdate(bool enable);
         
         /**
          *  Add content
+         *
          *  @param o New content pointer
          */
         void addContent(Content* newContentPtr);
         
+        /**
+         *  Remove content
+         *
+         *  @param nid Target ID (order of instances)
+         *
+         *  @return is remove succeed
+         */
         bool removeContent(const int nid);
+        
+        /**
+         *  Remove content
+         *
+         *  @param name Target content's name
+         */
         void removeContent(const string& name);
         
-        int getContentsSize();
+        /**
+         *  Offer number of contents
+         *
+         *  @return number
+         */
+        int getNumContents();
+        
+        /**
+         *  Offer opacity's parameter group
+         *
+         *  @param groupName    Parameter group name (default is "OPACITY")
+         *
+         *  @return             ofParameterGroup reference
+         */
+        const ofParameterGroup& getOpacityParameterGroup(const string& groupName = "OPACITY");
+        
+        /**
+         *  Clear contents
+         */
         void clear();
 
-        
+        /**
+         *  Offer the content had target ID
+         *
+         *  @param nid Target content's ID (order of instance)
+         *
+         *  @return Pointer as ofxContentsManager::Content
+         */
         Content* getContent(const int nid);
+        
+        /**
+         *  Offer the all of contents
+         *
+         *  @return Vector array included all of content's pointers
+         */
         vector<Content*> getAllContents();
-        
-        template<typename T>
-        T* getContent(const string &name)
-        {
-            contents_it it = mContents.begin();
-            while (it != mContents.end())
-            {
-                if ((*it)->obj->getName() == name)
-                {
-                    // return first one
-                    return dynamic_cast<T*>((*it)->obj.get());
-                }
-                else ++it;
-            }
-        }
-        
-        template<typename T>
-        vector<T*> getContentsSameName(const string &name)
-        {
-            vector<Content*> dst;
-            contents_it it = mContents.begin();
-            while (it != mContents.end())
-            {
-                if ((*it)->obj->getName() == name)
-                {
-                    dst.push_back(dynamic_cast<T*>((*it)->obj.get()));
-                }
-                ++it;
-            }
-            return dst;
-        }
-        
     };
 }

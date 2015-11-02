@@ -12,7 +12,10 @@ public:
     {
         mRadius = radius;
         mCounter = 0;
-        cout << getName() << " setup" << endl;
+        
+        cout << "class name: " << getName() << endl;
+        setName("my_content");
+        cout << "changed name: " << getName() << endl;
     }
 
     void update()

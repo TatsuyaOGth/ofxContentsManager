@@ -37,6 +37,7 @@ public:
     
     void update()
     {
+        angle+=rotationSpeed;
         if (angle>=TWO_PI) {
             angle=0;
         }

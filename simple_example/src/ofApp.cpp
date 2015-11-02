@@ -13,20 +13,14 @@ void ofApp::setup(){
     
     gui.setup();
     gui.setName("FADERS");
-    gui.add(faderA.set("CONTENT_A", 1, 0, 1));
-    gui.add(faderB.set("CONTENT_B", 0, 0, 1));
-    gui.add(faderC.set("CONTENT_C", 0, 0, 1));
+    gui.add(mContentsManager.getOpacityParameterGroup());
     
     ofBackground(30);
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
-    
-    mContentsManager.setOpacity(0, faderA);
-    mContentsManager.setOpacity(1, faderB);
-    mContentsManager.setOpacity(2, faderC);
-    
+        
     mContentsManager.update();
 }
 
