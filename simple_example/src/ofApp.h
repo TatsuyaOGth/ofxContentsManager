@@ -23,7 +23,7 @@ public:
     
     
     
-    ofxContentsManager::Manager* mContentsManager;
+    ofxContentsManager::Manager mContentsManager;
     
     ofxPanel gui;
     ofParameter<float> faderA;

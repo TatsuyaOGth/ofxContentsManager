@@ -4,56 +4,60 @@
 
 class ContentA : public ofxContentsManager::Content
 {
-    float mRadius;
-    float mCounter;
+    ofLight light;
     
 public:
-    ContentA(float radius)
+    ContentA()
     {
-        mRadius = radius;
-        mCounter = 0;
-        cout << getName() << " setup" << endl;
     }
     
     void update()
     {
-        mCounter += ofGetLastFrameTime();
     }
     
     void draw()
     {
+        ofEnableDepthTest();
+        ofSetLineWidth(10);
+        
         ofPushMatrix();
-        ofSetColor(255);
-        ofTranslate(getWidth() * 0.5, getHeight() * 0.5);
-        ofRotateY(ofGetFrameNum() * 0.3);
-        ofRotateX(ofGetFrameNum() * 0.4);
-        float s = 0;
-        float t = 0;
+        ofTranslate( getWidth() / 2, getHeight() / 2);
         
-        ofVboMesh mesh;
-        mesh.setMode(OF_PRIMITIVE_LINE_STRIP);
+        float movementSpeed = .1;
+        float cloudSize = ofGetWidth() / 2;
+        float maxBoxSize = 100;
+        float spacing = 1;
+        int boxCount = 100;
         
-        while (t < 180)
-        {
-            float noise = ofNoise(mCounter + t) * 20;
-            s += 18;
-            t += 1;
-            float radianS = ofDegToRad(s);
-            float radianT = ofDegToRad(t);
-            float thisx = noise + (mRadius * cos(radianS) * sin(radianT));
-            float thisy = noise + (mRadius * sin(radianS) * sin(radianT));
-            float thisz = noise + (mRadius * cos(radianT));
-            mesh.addColor(ofColor(255));
-            mesh.addVertex(ofVec3f(thisx, thisy, thisz));
+        
+        for(int i = 0; i < boxCount; i++) {
+            ofPushMatrix();
+            
+            float t = (ofGetElapsedTimef() + i * spacing) * movementSpeed;
+            ofVec3f pos(
+                        ofSignedNoise(t, 0, 0),
+                        ofSignedNoise(0, t, 0),
+                        ofSignedNoise(0, 0, t));
+            
+            float boxSize = maxBoxSize * ofNoise(pos.x, pos.y, pos.z);
+            
+            pos *= cloudSize;
+            ofTranslate(pos);
+            ofRotateX(pos.x);
+            ofRotateY(pos.y);
+            ofRotateZ(pos.z);
+            
+            ofFill();
+            ofSetColor(255);
+            ofDrawBox(boxSize);
+            
+            ofNoFill();
+            ofSetColor(ofColor::fromHsb(sinf(t) * 128 + 128, 255, 255));
+            ofDrawBox(boxSize * 1.1f);
+            
+            ofPopMatrix();
         }
-        mesh.draw();
         ofPopMatrix();
         
-    }
-    
-    // setter
-    void setRadius(float r)
-    {
-        mRadius = r;
     }
 };
