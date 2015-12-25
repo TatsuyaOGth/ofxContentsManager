@@ -12,13 +12,12 @@ public:
     {
         mRadius = radius;
         mCounter = 0;
+        
+        cout << "class name: " << getName() << endl;
+        setName("my_content");
+        cout << "changed name: " << getName() << endl;
     }
-    
-    void setup()
-    {
-        cout << getName() << " setup" << endl;
-    }
-    
+
     void update()
     {
         mCounter += ofGetLastFrameTime();
