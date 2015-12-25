@@ -5,33 +5,29 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    mContents = new ofxContentsMixer::Mixer(ofGetWidth(), ofGetHeight());
-    mContents->addContent<ContentA>(200);
-    mContents->addContent<ContentB>(300);
-    mContents->addContent<ContentC>(400);
+
+    mContentsManager.setup( ofGetWidth(), ofGetHeight());
+    mContentsManager.addContent<ContentA>();
+    mContentsManager.addContent<ContentB>();
+    mContentsManager.addContent<ContentC>(400);
     
     gui.setup();
     gui.setName("FADERS");
-    gui.add(faderA.set("CONTENT_A", 0, 0, 1));
-    gui.add(faderB.set("CONTENT_B", 0, 0, 1));
-    gui.add(faderC.set("CONTENT_C", 0, 0, 1));
+    gui.add(mContentsManager.getOpacityParameterGroup());
     
     ofBackground(30);
-    ofEnableAlphaBlending();
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
-    mContents->setOpacity(0, faderA);
-    mContents->setOpacity(1, faderB);
-    mContents->setOpacity(2, faderC);
-    mContents->update();
+        
+    mContentsManager.update();
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-
-    mContents->draw();
+    
+    mContentsManager.draw(0, 0, ofGetWidth(), ofGetHeight());
     gui.draw();
 }
 
@@ -52,7 +48,6 @@ void ofApp::keyPressed(int key){
     // next or previous content
     if (key == OF_KEY_LEFT)  mContentsManager.switchPreviousContent();
     if (key == OF_KEY_RIGHT) mContentsManager.switchNextContent();
-
 }
 
 //--------------------------------------------------------------

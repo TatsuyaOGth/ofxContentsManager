@@ -106,7 +106,11 @@ namespace ofxContentsManager
             {
                 ofPushStyle();
                 ofSetColor(currentColor, e->opacity * currentColor.a);
+#if (OF_VERSION_MAJOR == 0 && OF_VERSION_MINOR < 9)
                 e->fbo.getTextureReference().draw(x, y, z, width, height);
+#else
+                e->fbo.getTexture().draw(x, y, z, width, height);
+#endif
                 ofPopStyle();
             }
         }

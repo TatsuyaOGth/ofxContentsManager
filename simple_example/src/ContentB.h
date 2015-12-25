@@ -2,62 +2,136 @@
 
 #include "ofxContentsManager.h"
 
+
+#if (OF_VERSION_MAJOR == 0 && OF_VERSION_MINOR <= 8)
+#define ofDrawCircle ofCircle
+#define ofDrawLine ofLine
+#define ofDrawRectangle ofRect
+#endif
+
 class ContentB : public ofxContentsManager::Content
 {
-    float mRadius;
-    float mCounter;
+    float angle;
+    float sine;
+    float cosine;
+    float tangent;
+    float rotationSpeed;
+    
+    int radius;
+    
+    ofPoint center;
+    
+    ofPoint point;
+    
+    ofPath angleArc;
+
     
 public:
-    ContentB(float radius)
+    ContentB()
     {
-        mRadius = radius;
-        mCounter = 0;
-    }
-    
-    void setup()
-    {
-        cout << getName() << " setup" << endl;
+        angle=0;
+        cosine=0;
+        sine=0;
+        tangent=0;
+        rotationSpeed=0.01f;
+        radius = 180;
+        center.set(ofGetWidth()*0.3f, ofGetHeight()*0.6f, 0);
+        
+        
+        angleArc.setFilled(true);
+        angleArc.setColor(ofColor(240, 130, 10));
     }
     
     void update()
     {
-        mCounter += ofGetLastFrameTime();
+        angle+=rotationSpeed;
+        if (angle>=TWO_PI) {
+            angle=0;
+        }
+        
+        cosine=cos(angle);
+        sine=sin(angle);
+        tangent=tan(angle);
+        
+        
+        point.set(cosine * radius, sine * radius, 0);
+        
+        angleArc.clear();
+        angleArc.arc( 0,  0, radius * 0.5f, radius * 0.5f, 0, ofRadToDeg(angle)); 
+        angleArc.close();
+
     }
     
     void draw()
     {
-        ofPushMatrix();
-        ofSetColor(255);
-        ofTranslate(getWidth() * 0.5, getHeight() * 0.5);
-        ofRotateY(ofGetFrameNum() * 0.3);
-        ofRotateX(ofGetFrameNum() * 0.4);
-        float s = 0;
-        float t = 0;
+        ofSetCircleResolution(40);
         
-        ofVboMesh mesh;
-        mesh.setMode(OF_PRIMITIVE_LINE_STRIP);
+        //we translate everything to the center of the circle so it's easier to draw and understand.
+        ofTranslate(center);
         
-        while (t < 180)
-        {
-            float noise = ofNoise(mCounter + t) * 20;
-            s += 12;
-            t += 1;
-            float radianS = ofDegToRad(s);
-            float radianT = ofDegToRad(t);
-            float thisx = noise + (mRadius * cos(radianS) * sin(radianT));
-            float thisy = noise + (mRadius * sin(radianS) * sin(radianT));
-            float thisz = noise + (mRadius * cos(radianT));
-            mesh.addColor(ofColor(255));
-            mesh.addVertex(ofVec3f(thisx, thisy, thisz));
-        }
-        mesh.draw();
-        ofPopMatrix();
+        //draw the yellow circle
+        ofSetColor(240, 230, 10);
+        ofDrawCircle(0,0, radius);
         
-    }
-    
-    // setter
-    void setRadius(float r)
-    {
-        mRadius = r;
+        //draw the cyan circle that's moving over the yellow circle's perimeter
+        ofSetColor(0, 140, 255);
+        ofDrawCircle(point, 10);
+        
+        //draw the orange arc that represents the angle
+        angleArc.draw();
+        
+        
+        //draw the axis lines
+        ofSetColor(20);
+        ofSetLineWidth(1);
+        ofDrawLine(-radius * 1.3f, 0, radius * 2, 0);
+        ofDrawLine(0, -radius * 2, 0, radius * 1.3f);
+        
+        ofSetColor(180);
+        ofDrawLine(0, -radius , radius * 2, -radius);
+        ofDrawLine(0,  radius , radius * 2,  radius);
+        ofDrawLine(-radius, 0 ,-radius,  -radius * 2);
+        ofDrawLine( radius, 0 , radius,  -radius * 2);
+        
+        //draw the pink bars
+        ofSetColor(255, 0, 127);
+        ofDrawRectangle(0, -radius * 2, cosine * radius, 20);
+        ofDrawRectangle(radius * 2, 0, -20, sine * radius);
+        
+        
+        ofSetLineWidth(3);
+        
+        
+        //draw lines from the cyan ball to the pink bars
+        ofSetColor(255, 0, 50);
+        ofDrawLine(point.x, point.y, cosine * radius, -radius * 2);
+        ofDrawLine(point.x, point.y, radius * 2, sine * radius);
+        
+        //draw the line from the yellow circle's center to the cyan circle
+        ofSetColor(0, 127, 255);
+        ofDrawLine(0, 0, point.x, point.y);
+        
+        
+        //draw the dark lines inside the yellow circle that represent the distance from the axis to the cyan circle
+        ofSetColor(40);
+        ofDrawLine(0, sine * radius, cosine * radius, sine * radius);
+        ofDrawLine(cosine * radius, 0, cosine * radius, sine * radius);
+        
+        
+        // draw the info text
+        ofSetColor(10);
+        ofDrawBitmapString("Angle (RAD): " + ofToString(angle), 3,-3);
+        ofSetColor(30);
+        ofDrawBitmapString("Angle (DEG): " + ofToString(ofRadToDeg(angle)), 3,20);
+        
+        ofDrawBitmapString("Radius: " + ofToString(radius), -radius +20, -3);
+        
+        ofSetColor(220);
+        ofDrawBitmapString("Angle Sine: " + ofToString(sine), radius *2 +3, 0);
+        ofDrawBitmapString("sine x radius: " + ofToString(sine * radius), radius *2 +3, 15	);
+        
+        ofDrawBitmapString("Angle cosine: " + ofToString(cosine), 0, -radius *2 -20);
+        ofDrawBitmapString("cosine x radius: " + ofToString(cosine * radius), 0, -radius *2 -5 );
+
     }
 };

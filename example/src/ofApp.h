@@ -23,11 +23,10 @@ public:
     
     
     
-    ofxContentsManager::Manager mMasterManager;
-    ofxContentsManager::Manager mSubManager_1;
-    ofxContentsManager::Manager mSubManager_2;
+    ofxContentsManager::Manager mContentsManager;
     
     ofxPanel gui;
     ofParameter<float> faderA;
     ofParameter<float> faderB;
+    ofParameter<float> faderC;
 };
