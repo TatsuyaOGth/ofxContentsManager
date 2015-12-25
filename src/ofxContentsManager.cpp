@@ -2,6 +2,28 @@
 
 static const string MODULE_NAME = "ofxContentsManager";
 
+#ifndef MAX
+template<typename type>
+static int MAX(type v1, type v2)
+{
+    if (v1 >= v2)
+        return v1;
+    else
+        return v2;
+}
+#endif
+
+#ifndef MIN
+template<typename type>
+static int MIN(type v1, type v2)
+{
+    if (v1 <= v2)
+        return v1;
+    else
+        return v2;
+}
+#endif
+
 namespace ofxContentsManager
 {
     
@@ -37,28 +59,52 @@ namespace ofxContentsManager
     
     //---------------------------------------------------------------------------------------
     /*
-     MANAGER CLASS
+     Manager CLASS
      */
     //---------------------------------------------------------------------------------------
     
-    bool Manager::isValid(const int nid)
+    Manager::myContent* Manager::getContentStruct(const int nid)
     {
         if (mContents.empty() || nid < 0 || nid >= mContents.size())
         {
             ofLogError(MODULE_NAME) << "Manager has not content's ID: " << nid;
-            return false;
+            return NULL;
         }
-        return true;
+        else {
+            return mContents[nid];
+        }
     }
     
-    Manager::Manager()
-    : bBackgroundUpdate(false)
-    , mCurrentContent(0)
+    Manager::myContent* Manager::getContentStruct(const string &name)
     {
+        for (const auto& e : mContents)
+        {
+            if (e->obj->getName() == name)
+            {
+                return e;
+            }
+        }
+        ofLogError(MODULE_NAME) << "Manager has not content: " << name;
+        return NULL;
+    }
+    
+    Manager::Manager() : bBackgroundUpdate(false), mCurrentFocus(-1)
+    {
+    }
+    
+    Manager::Manager(const float width, const float height, const int internalformat, const int numSamples) : bBackgroundUpdate(false), mCurrentFocus(-1)
+    {
+        setup(width, height, internalformat, numSamples);
+    }
+    
+    Manager::Manager(const ofFbo::Settings& settings) : bBackgroundUpdate(false), mCurrentFocus(-1)
+    {
+        setup(settings);
     }
     
     Manager::~Manager()
     {
+        clear();
     };
     
     void Manager::setup(const float width, const float height, const int internalformat, const int numSamples)
@@ -68,11 +114,19 @@ namespace ofxContentsManager
         mFboSettings.height = height;
         mFboSettings.internalformat = internalformat;
         mFboSettings.numSamples = numSamples;
+        ofFbo::allocate(mFboSettings);
+        ofFbo::begin();
+        ofClear(0);
+        ofFbo::end();
     }
     
     void Manager::setup(const ofFbo::Settings& settings)
     {
         mFboSettings = settings;
+        ofFbo::allocate(mFboSettings);
+        ofFbo::begin();
+        ofClear(0);
+        ofFbo::end();
     }
     
     void Manager::update()
@@ -83,7 +137,7 @@ namespace ofxContentsManager
             {
                 e->obj->update();
                 
-                e->fbo.begin();
+                e->obj->begin();
                 ofClear(0);
                 glPushAttrib(GL_ALL_ATTRIB_BITS);
                 ofPushMatrix();
@@ -92,49 +146,25 @@ namespace ofxContentsManager
                 ofPopStyle();
                 ofPopMatrix();
                 glPopAttrib();
-                e->fbo.end();
+                e->obj->end();
             }
         }
-    }
-    
-    void Manager::draw(const float x, const float y, const float z, const float width, const float height)
-    {
-        ofColor currentColor = ofGetStyle().color;
+        
+        ofFbo::begin();
+        ofClear(0);
         for (const auto& e : mContents)
         {
-            if (e->opacity > 0.0)
-            {
-                ofPushStyle();
-                ofSetColor(currentColor, e->opacity * currentColor.a);
-#if (OF_VERSION_MAJOR == 0 && OF_VERSION_MINOR < 9)
-                e->fbo.getTextureReference().draw(x, y, z, width, height);
-#else
-                e->fbo.getTexture().draw(x, y, z, width, height);
-#endif
-                ofPopStyle();
-            }
+            ofSetColor(255, 255, 255, e->opacity * 255);
+            e->obj->ofFbo::draw(0, 0);
         }
+        ofFbo::end();
     }
     
     void Manager::draw()
     {
-        draw(0, 0, 0, mFboSettings.width, mFboSettings.height);
+        ofFbo::draw(0, 0);
     }
     
-    void Manager::draw(const float x, const float y)
-    {
-        draw(x, y, 0, mFboSettings.width, mFboSettings.height);
-    }
-    
-    void Manager::draw(const float x, const float y, const float width, const float height)
-    {
-        draw(x, y, 0, width, height);
-    }
-    
-    void Manager::draw(ofRectangle& rectangle)
-    {
-        draw(rectangle.x, rectangle.y, 0, rectangle.width, rectangle.height);
-    }
     
     void Manager::exit()
     {
@@ -144,16 +174,16 @@ namespace ofxContentsManager
         }
     }
     
-    
-    
-    void Manager::setOpacity(const int nid, const float opacity)
+    bool Manager::setOpacity(const int nid, const float opacity)
     {
-        if (!isValid(nid)) return;
+        if (getContentStruct(nid) == NULL) return false;
         mContents[nid]->opacity = ofClamp(opacity, 0.0, 1.0);
+        return true;
     }
     
-    void Manager::setOpacity(const string &name, const float opacity)
+    bool Manager::setOpacity(const string &name, const float opacity)
     {
+        if (getContentStruct(name) == NULL) return false;
         for (auto& o : mContents)
         {
             if (o->obj->getName() == name)
@@ -161,6 +191,7 @@ namespace ofxContentsManager
                 o->opacity = ofClamp(opacity, 0.0, 1.0);
             }
         }
+        return true;
     }
     
     void Manager::setOpacityAll(const float opacity)
@@ -171,59 +202,55 @@ namespace ofxContentsManager
         }
     }
     
-    void Manager::switchContent(const int nid)
+    bool Manager::focus(const int nid)
     {
-        if (!isValid(nid)) return;
-        for (int i = 0; i < mContents.size(); ++i)
+        if (getContentStruct(nid) == NULL) return false;
+        setOpacityAll(0);
+        setOpacity(nid, 1.0);
+        return true;
+    }
+    
+    bool Manager::focus(const string &name)
+    {
+        if (getContentStruct(name) == NULL) return false;
+        contents_it it = mContents.begin();
+        while (it != mContents.end())
         {
-            if (i == nid)
+            if ((*it)->obj->getName() == name)
             {
-                mContents[i]->opacity = 1.0;
+                (*it)->opacity = 1.0;
             }
-            else {
-                mContents[i]->opacity = 0.0;
-            }
+            ++it;
         }
-        mCurrentContent = nid;
+        return true;
     }
     
-    void Manager::switchContent(const string& name)
+    int Manager::focusNext()
     {
-        for (auto& o : mContents)
-        {
-            if (o->obj->getName() == name)
-            {
-                o->opacity = 1.0;
-            }
-            else {
-                o->opacity = 0.0;
-            }
-        }
+        int c = MIN(mCurrentFocus + 1, mContents.size() - 1);
+        if (focus(c))
+            return mCurrentFocus = c;
+        else
+            return mCurrentFocus;
     }
     
-    void Manager::switchNextContent(bool loop)
+    int Manager::focusPrevious()
     {
-        mCurrentContent++;
-        if (mCurrentContent >= mContents.size())
-        {
-            loop ? mCurrentContent = 0 : mCurrentContent = mContents.size() - 1;
-        }
-        switchContent(mCurrentContent);
+        int c = MAX(mCurrentFocus - 1, 0);
+        if (focus(c))
+            return mCurrentFocus = c;
+        else
+            return mCurrentFocus;
     }
     
-    void Manager::switchPreviousContent(bool loop)
+    void Manager::enableBackgroundUpdate()
     {
-        mCurrentContent--;
-        if (mCurrentContent < 0)
-        {
-            loop ? mCurrentContent = mContents.size() - 1 : mCurrentContent = 0;
-        }
-        switchContent(mCurrentContent);
+        bBackgroundUpdate = true;
     }
     
-    void Manager::enableBackgroundUpdate(bool enable)
+    void Manager::disableBackgroundUpdate()
     {
-        bBackgroundUpdate = enable;
+        bBackgroundUpdate = false;
     }
     
     void Manager::allocateBuffer(const float width, const float height, const int internalformat, const int numSamples)
@@ -236,10 +263,9 @@ namespace ofxContentsManager
     {
         for (auto& o : mContents)
         {
-            o->fbo.allocate(settings);
-            o->obj->bufferWidth  = settings.width;
-            o->obj->bufferHeight = settings.height;
+            o->obj->allocate(settings);
             o->obj->bufferResized(settings.width, settings.height);
+            ofFbo::allocate(settings);
         }
     }
     
@@ -252,7 +278,7 @@ namespace ofxContentsManager
     
     bool Manager::removeContent(const int nid)
     {
-        if (!isValid(nid)) return false;
+        if (getContentStruct(nid) == NULL) return false;
         contents_it it = mContents.begin() + nid;
         myContent* o = *it;
         o->obj->exit();
@@ -263,8 +289,9 @@ namespace ofxContentsManager
         return true;
     }
     
-    void Manager::removeContent(const string& name)
+    bool Manager::removeContent(const string& name)
     {
+        if (getContentStruct(name) == NULL) return false;
         contents_it it = mContents.begin();
         while (it != mContents.end())
         {
@@ -279,11 +306,12 @@ namespace ofxContentsManager
             }
             else ++it;
         }
+        return true;
     }
     
     Content* Manager::getContent(const int nid)
     {
-        if (!isValid(nid)) return NULL;
+        if (getContentStruct(nid) == NULL) return NULL;
         contents_it it = mContents.begin() + nid;
         return (*it)->obj;
     }
@@ -305,10 +333,10 @@ namespace ofxContentsManager
         return mContents.size();
     }
     
-    const ofParameterGroup& Manager::getOpacityParameterGroup(const string& groupName)
+    const ofParameterGroup& Manager::getOpacityParameters(const string& groupName)
     {
-        mOpacityParams.setName(groupName);
-        return mOpacityParams;
+        mParameterGroup.setName(groupName);
+        return mParameterGroup;
     }
     
     void Manager::clear()
@@ -320,8 +348,9 @@ namespace ofxContentsManager
             o->obj->exit();
             delete o->obj;
             delete o;
+            ++it;
         }
         mContents.clear();
-        mOpacityParams.clear();
+        mParameterGroup.clear();
     }
 }

@@ -13,7 +13,7 @@ void ofApp::setup(){
     
     gui.setup();
     gui.setName("FADERS");
-    gui.add(mContentsManager.getOpacityParameterGroup());
+    gui.add(mContentsManager.getOpacityParameters());
     
     ofBackground(30);
 }
@@ -41,13 +41,13 @@ void ofApp::keyPressed(int key){
     if (key == 'r') mContentsManager.allocateBuffer(ofGetWidth(), ofGetHeight());
     
     // switching content
-    if (key == '1') mContentsManager.switchContent(0);
-    if (key == '2') mContentsManager.switchContent(1);
-    if (key == '3') mContentsManager.switchContent(2);
+    if (key == '1') mContentsManager.focus(0);
+    if (key == '2') mContentsManager.focus(1);
+    if (key == '3') mContentsManager.focus(2);
     
     // next or previous content
-    if (key == OF_KEY_LEFT)  mContentsManager.switchPreviousContent();
-    if (key == OF_KEY_RIGHT) mContentsManager.switchNextContent();
+    if (key == OF_KEY_LEFT)  mContentsManager.focusPrevious();
+    if (key == OF_KEY_RIGHT) mContentsManager.focusNext();
 }
 
 //--------------------------------------------------------------
